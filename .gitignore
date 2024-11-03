@@ -1,0 +1,10 @@
+.DS_Store
+.vscode
+*.dSYM
+*.out
+*.profraw
+*.profdata
+*.log
+*.out.js
+*.out.worker.js
+*.out.wasm

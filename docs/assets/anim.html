@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<!--
+rm -f *.png dark.gif && ffmpeg -i dark.mov frame%04d.png && gifski -o dark.gif *.png && rm -f *.png
+rm -f *.png light.gif && ffmpeg -i light.mov -vf "eq=contrast=1.1,crop=in_w:in_h-1:0:0,fps=12" frame%04d.png && gifski -o light.gif --width=1400 --fps=12 *.png && rm -f *.png
+rm -f *.png dark.gif && ffmpeg -i dark.mov -vf "eq=contrast=1.0,crop=in_w:in_h-1:0:0,fps=12" frame%04d.png && gifski -o dark.gif --width=1400 --fps=12 *.png && rm -f *.png
+-->
+<html>
+<head>
+<meta charset='utf-8'>
+<style>
+    html, body { width: 100%; height: 100%; padding: 0; margin: 0 };
+</style>
+</head>
+<body>
+<canvas id="canvas" style="width: 100%; height: 100%"></canvas>
+<script>
+
+const which = 'animated';  // 'normal' or 'animated'
+const theme = 'dark';     // 'dark' or 'light'
+const cornerMarks = true;
+
+const darkColor = '#0e1116';
+const lightColor = 'white';
+const scale = window.devicePixelRatio;
+const ppad = 25;  // page padding
+const hpad = 14;
+const vpad = 10;
+const radius = 10;
+const lineWidth = 2;
+const nodeHeight = 100;
+const levelPad = 50;
+const leafPad = 10;
+const fontSize = 20;
+const linePad = 10;
+
+const bgColor = theme=='dark'?darkColor:lightColor;
+const fgColor = theme=='dark'?lightColor:darkColor;
+
+const HIDE =  1;
+const WHITE = 2;
+const BLACK = 4;
+const DASHED = 8;
+
+let connectionStates = [
+    BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK
+];
+
+let nodeStates = [
+    WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE
+];
+
+let branchItemStates = [
+    HIDE, HIDE, HIDE, HIDE, HIDE, HIDE, HIDE, HIDE, HIDE, HIDE, HIDE
+];
+
+
+function setAllConnectionStates(state) {
+    for (let i = 0; i < connectionStates.length; i++) {
+        connectionStates[i] = state;
+    }
+}
+
+function setAllNodeStates(state) {
+    for (let i = 0; i < nodeStates.length; i++) {
+        nodeStates[i] = state;
+    }
+}
+
+function setAllBranchItemStates(state) {
+    for (let i = 0; i < branchItemStates.length; i++) {
+        branchItemStates[i] = state;
+    }
+}
+
+function showItemPath(item) {
+    setAllConnectionStates(BLACK);
+    setAllNodeStates(WHITE);
+    setAllBranchItemStates(HIDE);
+    switch (item) {
+    case 0:
+        setAllConnectionStates(HIDE);
+        branchItemStates[0] = BLACK;
+        connectionStates[0] = BLACK;
+        connectionStates[3] = BLACK;
+        connectionStates[4] = BLACK;
+        connectionStates[5] = BLACK;
+        nodeStates[1] = BLACK;
+        nodeStates[4] = BLACK;
+        nodeStates[5] = BLACK;
+        nodeStates[6] = BLACK;
+        break;
+    case 1:
+        setAllConnectionStates(HIDE);
+        branchItemStates[1] = BLACK;
+        connectionStates[1] = BLACK;
+        connectionStates[6] = BLACK;
+        connectionStates[7] = BLACK;
+        nodeStates[2] = BLACK;
+        nodeStates[7] = BLACK;
+        nodeStates[8] = BLACK;
+        break;
+    case 2:
+        setAllConnectionStates(HIDE);
+        branchItemStates[2] = BLACK;
+        connectionStates[2] = BLACK;
+        connectionStates[8] = BLACK;
+        connectionStates[9] = BLACK;
+        connectionStates[10] = BLACK;
+        nodeStates[3] = BLACK;
+        nodeStates[9] = BLACK;
+        nodeStates[10] = BLACK;
+        nodeStates[11] = BLACK;
+        break;
+    case 3:
+        setAllConnectionStates(HIDE);
+        branchItemStates[3] = BLACK;
+        connectionStates[3] = BLACK;
+        nodeStates[4] = BLACK;
+        break;
+    case 4:
+        setAllConnectionStates(HIDE);
+        branchItemStates[4] = BLACK;
+        connectionStates[4] = BLACK;
+        nodeStates[5] = BLACK;
+        break;
+    case 5:
+        setAllConnectionStates(HIDE);
+        branchItemStates[5] = BLACK;
+        connectionStates[5] = BLACK;
+        nodeStates[6] = BLACK;
+        break;
+    case 6:
+        setAllConnectionStates(HIDE);
+        branchItemStates[6] = BLACK;
+        connectionStates[6] = BLACK;
+        nodeStates[7] = BLACK;
+        break;
+    case 7:
+        setAllConnectionStates(HIDE);
+        branchItemStates[7] = BLACK;
+        connectionStates[7] = BLACK;
+        nodeStates[8] = BLACK;
+        break;
+    case 8:
+        setAllConnectionStates(HIDE);
+        branchItemStates[8] = BLACK;
+        connectionStates[8] = BLACK;
+        nodeStates[9] = BLACK;
+        break;
+    case 9:
+        setAllConnectionStates(HIDE);
+        branchItemStates[9] = BLACK;
+        connectionStates[9] = BLACK;
+        nodeStates[10] = BLACK;
+        break;
+    case 10:
+        setAllConnectionStates(HIDE);
+        branchItemStates[10] = BLACK;
+        connectionStates[10] = BLACK;
+        nodeStates[11] = BLACK;
+        break;
+    }
+}
+
+
+
+let canvas = document.getElementById("canvas");
+
+/** @type {CanvasRenderingContext2D} */
+let ctx = canvas.getContext("2d");
+
+ctx.font = (fontSize*scale)+'px system-ui';
+const spaceWidth = ctx.measureText(" ").width/scale;
+const bulletWidth = ctx.measureText("•").width/scale;
+
+
+
+
+function drawRoundedRect(x, y, width, height, radius) {
+    x *= scale, y *= scale, width *= scale, height *= scale, radius *= scale;
+    ctx.beginPath();
+    ctx.moveTo(x+radius, y);
+    ctx.lineTo(x+width-radius, y);
+    ctx.quadraticCurveTo(x+width, y, x+width, y+radius);
+    ctx.lineTo(x+width, y+height-radius);
+    ctx.quadraticCurveTo(x+width, y+height, x+width-radius, y+height);
+    ctx.lineTo(x+radius, y+height);
+    ctx.quadraticCurveTo(x, y+height, x, y+height-radius);
+    ctx.lineTo(x, y+radius);
+    ctx.quadraticCurveTo(x, y, x+radius, y);
+    ctx.closePath();
+}
+
+function drawOrMeasureNode(x, y, leaf, items, measure, state) {
+    ctx.font = (fontSize*scale)+'px system-ui';
+    let text = "";
+    let children = [];
+    if (leaf) {
+        for (let i = 0; i < items.length; i++) {
+            if (i > 0) {
+                text += "  ";
+            }
+            text += items[i];
+        }
+    } else {
+        let i = 0;
+        let cx = hpad;
+        let ctext, cwidth;
+        for (; i < items.length; i++) {
+            if (i > 0) {
+                ctext = "   ";
+                cwidth = ctx.measureText(ctext).width/scale;
+                cx += cwidth;
+                text += ctext;
+            }
+            ctext = "•   " + items[i];
+            cwidth = ctx.measureText(ctext).width/scale;
+            children[i] = { x: cx+bulletWidth/2, width: cwidth };
+            cx += cwidth;
+            text += ctext;
+        }
+        ctext = "   ";
+        cwidth = ctx.measureText(ctext).width/scale;
+        cx += cwidth;
+        text += ctext;
+        ctext = "•";
+        cwidth = ctx.measureText(ctext).width/scale;
+        children[i] = { x: cx+bulletWidth/2, width: cwidth };
+        cx += cwidth;
+        text += ctext;
+    }
+    let metrics = ctx.measureText(text);
+    let textWidth = metrics.width;
+    let height = fontSize;
+    let size = { 
+        width: textWidth/scale+hpad*2,
+        height: height+vpad*2,
+        children: children
+    };
+    if (measure) {
+        return size;
+    }
+    ctx.globalAlpha = state==HIDE?0:1;
+    ctx.lineWidth = lineWidth*scale;
+    ctx.strokeStyle = state==WHITE?fgColor:bgColor;
+    ctx.fillStyle = state==WHITE?bgColor:fgColor;
+    drawRoundedRect(x, y, textWidth/scale+hpad*2, height+vpad*2, radius);
+    ctx.fill();
+    ctx.stroke();
+if (leaf) {
+    ctx.fillStyle = state==WHITE?fgColor:bgColor;
+    ctx.fillText(text, (x+hpad)*scale, (y+fontSize+vpad-2)*scale);
+}
+    ctx.globalAlpha = 1;
+    return size;
+}
+
+function drawNode(x, y, leaf, items, state) {
+    return drawOrMeasureNode(x, y, leaf, items, false, state);
+}
+
+function measureNode(x, y, leaf, items) {
+    return drawOrMeasureNode(x, y, leaf, items, true, BLACK);
+}
+
+function drawConnectionLine(x1, y1, x2, y2, state) {
+    ctx.globalAlpha = (state&HIDE)==HIDE?0:1;
+    ctx.strokeStyle = (state&BLACK)==BLACK?fgColor:bgColor;
+    ctx.lineWidth = lineWidth*scale;
+    // ctx.lineDashOffset = 10;
+    // ctx.lineDashOffset = 4*scale; //(state&DASHED)==DASHED?4*scale:0;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    if ((state&DASHED) == DASHED) {
+        ctx.setLineDash([1*scale, 5*scale]);
+    }
+    ctx.beginPath();
+    ctx.moveTo(x1*scale, y1*scale);
+    ctx.lineTo(x1*scale, (y2+y1)/2*scale);
+    ctx.lineTo(x2*scale, (y2+y1)/2*scale);
+    ctx.lineTo(x2*scale, y2*scale);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+}
+
+function drawConnection(nodes, i, j, k, state) {
+    let x1 = nodes[i].x + nodes[i].children[j].x;
+    let y1 = nodes[i].y + nodes[i].height + linePad;
+    let x2 = nodes[k].x + nodes[k].width/2;
+    let y2 = nodes[k].y - linePad;
+    drawConnectionLine(x1, y1, x2, y2, state);
+}
+
+function drawBranchItem(nodes, nodeItems, nodeLinks, i, j, textOnly, state) {
+    let items = nodeItems[i];
+    let links = nodeLinks[i];
+    ctx.font = (fontSize*scale)+'px system-ui';
+    let ctext;
+    if (j < items.length) {
+        ctext = "•   " + items[j];
+    } else {
+        ctext = "•";
+    }
+    ctx.globalAlpha = state==HIDE?0:1;
+    
+    ctx.lineWidth = lineWidth*scale;
+
+    let nx; 
+    if (j == nodes[i].children.length-1) {
+        nx = nodes[i].width;
+    } else {
+        nx = nodes[i].children[j+1].x;
+    }
+    let y = nodes[i].y;
+    let x = nodes[i].x+nodes[i].children[j].x-nodes[i].children[0].x;
+    let w = nx-nodes[i].children[j].x+nodes[i].children[0].x;
+    if (j == nodes[i].children.length-1) {
+        x += 3;
+        w -= 3;
+    } else if (j == 0) {
+        w -= 8;
+    } else {
+        x += 3;
+        w -= 8;
+    }
+    let h = nodes[i].height;
+    if (!textOnly) {
+        drawRoundedRect(x, y, w, h, radius);
+        ctx.fillStyle = state==BLACK?fgColor:bgColor;
+        ctx.strokeStyle = state==BLACK?fgColor:bgColor;
+        ctx.fill();
+        ctx.stroke();
+    }
+    ctx.fillStyle = state==BLACK?bgColor:fgColor;
+    ctx.fillText(ctext, 
+        (nodes[i].x+nodes[i].children[j].x-spaceWidth)*scale, 
+        (nodes[i].y+fontSize+vpad-2)*scale);
+    if (!textOnly) {
+        let range = [];
+        if (i == 0) {
+            let leaves = nodeLinks[links[j]];
+            let a = nodeItems[leaves[0]];
+            let b = nodeItems[leaves[leaves.length-1]];
+            range.push(a[0], b[b.length-1]);
+        } else {
+            for (let k = 0; k < nodeItems[links[j]].length; k++) {
+                range.push(nodeItems[links[j]][k]+"");
+            }
+        }
+        if (j < nodes[i].children.length-1) {
+            range.push(items[j]+"");
+        }
+        let ctext = range[0] + "-" + range[range.length-1];
+        ctx.textAlign = "center"
+        ctx.font = (fontSize*.75*scale)+'px system-ui';
+        ctx.fillStyle = state==WHITE?bgColor:fgColor;
+        ctx.fillText(ctext, 
+            (nodes[i].x+nodes[i].children[j].x+nodes[i].children[j].width/2-spaceWidth)*scale, 
+            (nodes[i].y-vpad)*scale);
+            ctx.textAlign = "left"
+            
+    }
+
+    ctx.globalAlpha = 1;
+}
+
+function drawCornerMark(x, y, tl) {
+    ctx.beginPath();
+    if (tl) {
+        ctx.moveTo((x-5)*scale, y*scale);
+        ctx.lineTo((x-15)*scale, y*scale);
+        ctx.moveTo(x*scale, (y-5)*scale);
+        ctx.lineTo(x*scale, (y-15)*scale);
+    } else {
+        ctx.moveTo((x+5)*scale, y*scale);
+        ctx.lineTo((x+15)*scale, y*scale);
+        ctx.moveTo(x*scale, (y+5)*scale);
+        ctx.lineTo(x*scale, (y+15)*scale);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = fgColor
+    ctx.lineWidth = 1*scale;
+    ctx.stroke();
+}
+
+function drawCornerMarks(nodes) {
+    let x1 = Math.floor(nodes[4].x) - ppad;
+    let y1 = Math.floor(nodes[0].y) - ppad;
+    let x2 = Math.floor(nodes[11].x + nodes[11].width) + ppad;
+    let y2 = Math.floor(nodes[4].y + nodes[4].height) + ppad;
+    drawCornerMark(x1, y1, true);
+    drawCornerMark(x2, y2, false);
+}
+
+function drawCanvas(item) {
+    showItemPath(item);
+
+
+    var w = document.body.offsetWidth;
+    var h = document.body.offsetHeight;
+    canvas.width = w*scale;
+    canvas.height = h*scale;
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, w*scale, h*scale);
+
+    let nodes = [];
+    let nodeItems = [
+        // level 0
+        ['10','18'], 
+        // level 1
+        ['3','6'], ['14'], ['21', '23'],
+        // level 2
+        ['1', '2'], ['4', '5'], ['7', '8', '9'], 
+        ['11', '12', '13'], ['15', '16', '17'], 
+        ['19','20'], ['22'], ['24', '25', '26'],
+    ];
+
+    let nodeLinks = [
+        // level 0
+        [1, 2, 3],
+        // level 1
+        [4, 5, 6], [7, 8], [9, 10, 11],
+    ];
+
+    // level 0
+    nodes[0] = measureNode(0, 0, false,  nodeItems[0]);
+
+    // level 1
+    nodes[1] = measureNode(0, 0, false,  nodeItems[1]);
+    nodes[2] = measureNode(0, 0, false,  nodeItems[2]);
+    nodes[3] = measureNode(0, 0, false,  nodeItems[3]);
+
+    // level 2
+    nodes[4] = measureNode(0, 0, true,  nodeItems[4]);
+    nodes[5] = measureNode(0, 0, true,  nodeItems[5]);
+    nodes[6] = measureNode(0, 0, true,  nodeItems[6]);
+    nodes[7] = measureNode(0, 0, true,  nodeItems[7]);
+    nodes[8] = measureNode(0, 0, true,  nodeItems[8]);
+    nodes[9] = measureNode(0, 0, true,  nodeItems[9]);
+    nodes[10] = measureNode(0, 0, true, nodeItems[10]);
+    nodes[11] = measureNode(0, 0, true, nodeItems[11]);
+
+    // level 2
+    let leavesWidth = 0;
+    for (var i = 4; i < nodes.length; i++) {
+        if (i > 4) {
+            leavesWidth += leafPad;
+        }
+        leavesWidth += nodes[i].width;
+    }
+
+    let x = w/2 - leavesWidth/2;
+    let y;
+    for (let i = 4; i < nodes.length; i++) {
+        y = h/2-nodes[0].height/2+nodes[0].height+levelPad;
+        drawNode(x, y, true, nodeItems[i], nodeStates[i]);
+        nodes[i].x = x;
+        nodes[i].y = y;
+        x += nodes[i].width + leafPad;
+    }
+
+
+
+    // level 1
+    // let links = nodeLinks[1];
+    x = nodes[5].x + nodes[5].width / 2 - nodes[1].children[1].x; 
+    y = h/2-nodes[0].height/2;
+    drawNode(x, y, false, nodeItems[1], nodeStates[1]);
+    nodes[1].x = x;
+    nodes[1].y = y;
+
+    x = w/2-nodes[1].width/2;
+    y = h/2-nodes[0].height/2;
+    drawNode(x, y, false, nodeItems[2], nodeStates[2]);
+    nodes[2].x = x;
+    nodes[2].y = y;
+
+    x = nodes[10].x + nodes[10].width / 2 - nodes[3].children[1].x; 
+    y = h/2-nodes[0].height/2;
+    drawNode(x, y, false, nodeItems[3], nodeStates[3]);
+    nodes[3].x = x;
+    nodes[3].y = y;
+
+    // level 0
+    x = nodes[2].x + nodes[2].width/2 - nodes[0].children[1].x;
+    y = h/2-nodes[0].height/2-nodes[0].height-levelPad;
+    drawNode(x, y, false, nodeItems[0], nodeStates[0]);
+    nodes[0].x = x;
+    nodes[0].y = y;
+
+    drawConnection(nodes, 0, 0, 1, connectionStates[0]);
+    drawConnection(nodes, 0, 1, 2, connectionStates[1]);
+    drawConnection(nodes, 0, 2, 3, connectionStates[2]);
+    drawConnection(nodes, 1, 0, 4, connectionStates[3]);
+    drawConnection(nodes, 1, 1, 5, connectionStates[4]);
+    drawConnection(nodes, 1, 2, 6, connectionStates[5]);
+    drawConnection(nodes, 2, 0, 7, connectionStates[6]);
+    drawConnection(nodes, 2, 1, 8, connectionStates[7]);
+    drawConnection(nodes, 3, 0, 9, connectionStates[8]);
+    drawConnection(nodes, 3, 1, 10, connectionStates[9]);
+    drawConnection(nodes, 3, 2, 11, connectionStates[10]);
+
+    drawBranchItem(nodes, nodeItems, nodeLinks, 0, 0, true, nodeStates[0]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 0, 1, true, nodeStates[0]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 0, 2, true, nodeStates[0]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 1, 0, true, nodeStates[1]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 1, 1, true, nodeStates[1]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 1, 2, true, nodeStates[1]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 2, 0, true, nodeStates[2]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 2, 1, true, nodeStates[2]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 3, 0, true, nodeStates[3]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 3, 1, true, nodeStates[3]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 3, 2, true, nodeStates[3]);
+
+    drawBranchItem(nodes, nodeItems, nodeLinks, 0, 0, false, branchItemStates[0]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 0, 1, false, branchItemStates[1]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 0, 2, false, branchItemStates[2]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 1, 0, false, branchItemStates[3]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 1, 1, false, branchItemStates[4]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 1, 2, false, branchItemStates[5]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 2, 0, false, branchItemStates[6]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 2, 1, false, branchItemStates[7]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 3, 0, false, branchItemStates[8]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 3, 1, false, branchItemStates[9]);
+    drawBranchItem(nodes, nodeItems, nodeLinks, 3, 2, false, branchItemStates[10]);
+
+    if (cornerMarks) {
+        drawCornerMarks(nodes);
+    }
+
+
+}
+
+
+
+if (which == 'normal') {
+    drawCanvas(-1);
+} else {
+    let page = 0;
+    drawCanvas(page);
+    setInterval(function() {
+        page = (page+1)%11;
+        drawCanvas(page);
+    }, 2000);
+}
+</script>
+</body>
+</html>

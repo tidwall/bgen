@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<!-- 
+$ cc docs/assets/rects.c && ./a.out none > docs/assets/none.js
+$ cc docs/assets/rects.c && ./a.out hilbert > docs/assets/hilbert.js
+$ cc docs/assets/rects.c && ./a.out zorder > docs/assets/zorder.js
+-->
+<html>
+<head>
+<meta charset='utf-8'>
+<style>
+    html, body { width: 100%; height: 100%; padding: 0; margin: 0 };
+</style>
+</head>
+<body>
+<canvas id="canvas" style="width: 100%; height: 100%"></canvas>
+<script src="hilbert.js"></script>
+<script>let hilbert_rects = _rects;</script>
+<script src="zorder.js"></script>
+<script>let zorder_rects = _rects;</script>
+<script src="none.js"></script>
+<script>let none_rects = _rects;</script>
+<script>
+
+const theme = 'dark'
+
+const darkColor = '#0e1116';
+const lightColor = 'white';
+const rects = none_rects;
+
+const scale = window.devicePixelRatio;
+let canvas = document.getElementById("canvas");
+const bgColor = theme=='dark'?darkColor:lightColor;
+const fgColor = theme=='dark'?lightColor:darkColor;
+
+/** @type {CanvasRenderingContext2D} */
+let ctx = canvas.getContext("2d");
+let w, h;
+let s = 3.0;
+let l = 1.75;
+
+let colors = ['purple', 'red', 'green', 'rgb(200,200,0)'];
+
+function drawRect(xmin, ymin, xmax, ymax, kind, depth) {
+  let color
+  if (xmin == xmax && ymin == ymax) {
+    if (kind != 'point') {
+      return;
+    }
+    color = fgColor;
+  } else if (kind != 'rect') {
+    return;
+  } else {
+    ctx.strokeStyle = colors[depth%colors.length];
+  }
+  ctx.beginPath();
+  ctx.moveTo((w/2+xmin*s-0.1)*scale, (h/2+-ymin*s-0.1)*scale);
+  ctx.lineTo((w/2+xmax*s+0.1)*scale, (h/2+-ymin*s-0.1)*scale);
+  ctx.lineTo((w/2+xmax*s+0.1)*scale, (h/2+-ymax*s+0.1)*scale);
+  ctx.lineTo((w/2+xmin*s-0.1)*scale, (h/2+-ymax*s+0.1)*scale);
+  ctx.lineTo((w/2+xmin*s-0.1)*scale, (h/2+-ymin*s-0.1)*scale);
+  ctx.closePath();
+  ctx.lineWidth = l;
+  ctx.strokeStyle = color;
+  ctx.stroke();
+}
+
+function drawCornerMark(x, y, tl) {
+  
+  x = w/2+x*s;
+  y = h/2+-y*s;
+
+  
+  
+
+  ctx.beginPath();
+  if (tl) {
+    x-=5;
+    y-=5;
+    ctx.moveTo((x-5)*scale, y*scale);
+    ctx.lineTo((x-15)*scale, y*scale);
+    ctx.moveTo(x*scale, (y-5)*scale);
+    ctx.lineTo(x*scale, (y-15)*scale);
+  } else {
+    x+=5;
+    y+=5;
+    ctx.moveTo((x+5)*scale, y*scale);
+    ctx.lineTo((x+15)*scale, y*scale);
+    ctx.moveTo(x*scale, (y+5)*scale);
+    ctx.lineTo(x*scale, (y+15)*scale);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = fgColor
+  ctx.lineWidth = 1*scale;
+  ctx.stroke();
+}
+
+function drawCanvas() {
+    w = document.body.offsetWidth;
+    h = document.body.offsetHeight;
+    canvas.width = w*scale;
+    canvas.height = h*scale;
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, w*scale, h*scale);
+
+    
+
+    let xmin = Infinity;
+    let ymin = Infinity;
+    let xmax = -Infinity;
+    let ymax = -Infinity;
+    let dmax = -Infinity;
+
+    rects.forEach(element => {
+      xmin = Math.min(xmin, element.rect[0]);
+      ymin = Math.min(ymin, element.rect[1]);
+      xmax = Math.max(xmax, element.rect[2]);
+      ymax = Math.max(ymax, element.rect[3]);
+      dmax = Math.max(dmax, element.depth);
+    });
+    for (let d = dmax; d >= 0; d--) {
+      rects.forEach(element => {
+        if (element.depth == d) {
+          drawRect(element.rect[0], element.rect[1], 
+            element.rect[2], element.rect[3], 'rect', d+1);
+        }
+      });
+    }
+    drawRect(xmin, ymin, xmax, ymax, 'rect', 0);
+    rects.forEach(element => {
+        drawRect(element.rect[0], element.rect[1], 
+          element.rect[2], element.rect[3], 'point');
+    });
+
+    drawCornerMark(xmin, ymax, true);
+    drawCornerMark(xmax, ymin, false);
+}
+
+
+
+drawCanvas();
+
+</script>
+
+</body>
+</html>
