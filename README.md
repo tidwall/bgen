@@ -19,7 +19,7 @@ in-memory btree based collections.
   - [Counted B-tree](#counted-b-tree)
   - [Vector B-tree](#vector-b-tree)
   - [Spatial B-tree](#spatial-b-tree)
-- Supports most C compilers. Clang, gcc, tcc, etc
+- Supports most C compilers (C99+). Clang, gcc, tcc, etc
 - Webassembly support with Emscripten (emcc)
 - Exhaustively [tested](tests/README.md) with 100% coverage
 - [Very fast](#performance) 🚀
