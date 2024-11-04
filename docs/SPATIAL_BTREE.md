@@ -56,7 +56,7 @@ The Spatial B-tree leaves the order of the items up to you.
 This means the quality and performance of searching the tree can vary greatly
 by the how this ordering is managed.
 
-For example, let's say you want to store geospatial points where each points
+For example, let's say you want to store geospatial points where each point
 is a tuple that contains at least three fields (id,lat,lon). In a standard
 B-tree you could order on 'id', but this may lead to subpar performance because
 the 'id' may not necessarily correspond with the (lat,lon). This will 
