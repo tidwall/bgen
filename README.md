@@ -364,7 +364,7 @@ int user_compare(struct user a, struct user b) {
 
 #define BGEN_NAME            status_users
 #define BGEN_TYPE            struct status_user
-#define BGEN_COMPARE         return user_comapre(a, b);
+#define BGEN_COMPARE         return user_compare(a, b);
 #define BGEN_MAYBELESSEQUAL  return a.status <= b.status;
 #include "bgen.h"
 ```
