@@ -370,7 +370,7 @@ int user_compare(struct user a, struct user b) {
 #include "bgen.h"
 ```
 
-With the BGEN_MAYBELESSEQUAL option, the btree will preform a quick linear
+With the BGEN_MAYBELESSEQUAL option, the btree will perform a quick linear
 search on status and fallback to the slower user_compare function when needed.
 
 Note that BGEN_MAYBELESSEQUAL is only for linear searches cannot be used in 
