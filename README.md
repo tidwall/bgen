@@ -9,6 +9,7 @@ in-memory btree based collections.
 ## Features
 
 - Compile-time generation using preprocessor templates
+- Type-safe generic data structure
 - Single-file header with no dependencies
 - [Namespaces](#namespaces)
 - Support for [custom allocators](#custom-allocators)
