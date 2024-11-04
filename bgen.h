@@ -3512,7 +3512,7 @@ BGEN_PITEM {
     union {
         BGEN_ITEM item;
         BGEN_NODE *node;
-    };
+    } u;
 };
 
 BGEN_PQUEUE {
@@ -3548,7 +3548,8 @@ static int BGEN_SYM(pcompare)(BGEN_PQUEUE *queue, size_t i, size_t j,
     // Indexes are equal, must be an item. compare the items
     BGEN_ASSERT(queue->items[i].index == UINT64_MAX);
     BGEN_ASSERT(queue->items[j].index == UINT64_MAX);
-    return BGEN_SYM(compare)(queue->items[i].item, queue->items[j].item, udata);
+    return BGEN_SYM(compare)(queue->items[i].u.item, queue->items[j].u.item,
+        udata);
 }
 
 static void BGEN_SYM(pclear)(BGEN_PQUEUE *queue) {
@@ -3635,7 +3636,8 @@ static int BGEN_SYM(ppush_item)(BGEN_PQUEUE *queue, BGEN_ITEM item,
     BGEN_RTYPE dist, void *udata)
 {
     queue->index++;
-    BGEN_PITEM pitem = { .dist = dist, .index = UINT64_MAX, .item = item };
+    BGEN_PITEM pitem = { .dist = dist, .index = UINT64_MAX };
+    pitem.u.item = item;
     return BGEN_SYM(ppush0)(queue, pitem, udata);
 }
 
@@ -3643,7 +3645,8 @@ static int BGEN_SYM(ppush_node)(BGEN_PQUEUE *queue, BGEN_NODE *node,
     BGEN_RTYPE dist, void *udata)
 {
     queue->index++;
-    BGEN_PITEM pitem = { .dist = dist, .index = queue->index, .node = node };
+    BGEN_PITEM pitem = { .dist = dist, .index = queue->index };
+    pitem.u.node = node;
     return BGEN_SYM(ppush0)(queue, pitem, udata);
 }
 
@@ -3676,7 +3679,7 @@ BGEN_ITER {
                 BGEN_RTYPE max[BGEN_DIMS], void *target, void *udata);
             BGEN_PQUEUE queue; // priority queue
             BGEN_ITEM nitem; // current nearby item
-        };
+        } n;
 #endif
         struct  {
 #ifdef BGEN_SPATIAL
@@ -3684,8 +3687,8 @@ BGEN_ITER {
 #endif
             short nstack; // number of path nodes (depth)
             BGEN_SNODE stack[BGEN_MAXHEIGHT]; // traversed path nodes
-        };
-    };
+        } s;
+    } u;
 };
 
 static void BGEN_SYM(iter_init)(BGEN_NODE **root, BGEN_ITER *iter, void *udata){
@@ -3711,15 +3714,15 @@ static void BGEN_SYM(iter_reset)(BGEN_ITER *iter, int kind) {
     if (iter->kind == BGEN_NEARBY && kind != BGEN_NEARBY) {
         // printf("B\n");
         // switching from NEARBY to SCAN
-        BGEN_SYM(pclear)(&iter->queue);
+        BGEN_SYM(pclear)(&iter->u.n.queue);
     } else if (iter->kind != BGEN_NEARBY && kind == BGEN_NEARBY) {
         // printf("C\n");
         // switching from SCAN to NEARBY
-        BGEN_SYM(pqueue_init)(&iter->queue);
+        BGEN_SYM(pqueue_init)(&iter->u.n.queue);
     }
     // printf("D\n");
 #endif
-    iter->nstack = 0;
+    iter->u.s.nstack = 0;
     iter->kind = kind;
 }
 
@@ -3727,7 +3730,7 @@ static void BGEN_SYM(iter_release)(BGEN_ITER *iter) {
     (void)iter;
 #ifdef BGEN_SPATIAL
     if (iter->kind == BGEN_NEARBY) {
-        BGEN_SYM(pclear)(&iter->queue);
+        BGEN_SYM(pclear)(&iter->u.n.queue);
     }
 #endif
 }
@@ -3746,7 +3749,7 @@ static bool BGEN_SYM(iter_skip_item)(BGEN_ITER *iter, BGEN_SNODE *snode) {
     if (iter->kind == BGEN_INTERSECTS) {
         BGEN_RECT rect = BGEN_SYM(item_rect)(
             snode->node->items[snode->index], iter->udata);
-        if (!BGEN_SYM(rect_intersects)(iter->itarget, rect)) {
+        if (!BGEN_SYM(rect_intersects)(iter->u.s.itarget, rect)) {
             return true;
         }
     }
@@ -3755,7 +3758,7 @@ static bool BGEN_SYM(iter_skip_item)(BGEN_ITER *iter, BGEN_SNODE *snode) {
 static bool BGEN_SYM(iter_skip_node)(BGEN_ITER *iter, BGEN_SNODE *snode) {
     if (iter->kind == BGEN_INTERSECTS) {
         BGEN_RECT rect = snode->node->rects[snode->index];
-        if (!BGEN_SYM(rect_intersects)(iter->itarget, rect)) {
+        if (!BGEN_SYM(rect_intersects)(iter->u.s.itarget, rect)) {
             return true;
         }
     }
@@ -3765,9 +3768,9 @@ static bool BGEN_SYM(iter_skip_node)(BGEN_ITER *iter, BGEN_SNODE *snode) {
 
 BGEN_NOINLINE
 static void BGEN_SYM(iter_next_asc)(BGEN_ITER *iter) {
-    BGEN_SNODE *snode = &iter->stack[iter->nstack-1];
+    BGEN_SNODE *snode = &iter->u.s.stack[iter->u.s.nstack-1];
     while (1) {
-        snode = &iter->stack[iter->nstack-1];
+        snode = &iter->u.s.stack[iter->u.s.nstack-1];
         snode->index++;
         if (snode->node->isleaf && snode->index < snode->node->len) {
         next_item:
@@ -3781,9 +3784,9 @@ static void BGEN_SYM(iter_next_asc)(BGEN_ITER *iter) {
         }
         if (snode->node->isleaf || snode->index == snode->node->len+1) {
             // pop the stack
-            while (iter->nstack > 1) {
-                iter->nstack--;
-                snode = &iter->stack[iter->nstack-1];
+            while (iter->u.s.nstack > 1) {
+                iter->u.s.nstack--;
+                snode = &iter->u.s.stack[iter->u.s.nstack-1];
                 if (snode->index < snode->node->len) {
                     goto next_item;
                 }
@@ -3804,7 +3807,7 @@ static void BGEN_SYM(iter_next_asc)(BGEN_ITER *iter) {
             iter->valid = false;
             return;
         }
-        iter->stack[iter->nstack++] = (BGEN_SNODE){ 
+        iter->u.s.stack[iter->u.s.nstack++] = (BGEN_SNODE){ 
             snode->node->children[snode->index], -1 };
     }
 }
@@ -3814,7 +3817,7 @@ BGEN_NOINLINE
 static void BGEN_SYM(iter_next_desc)(BGEN_ITER *iter) {
     BGEN_SNODE *snode;
     while (1) {
-        snode = &iter->stack[iter->nstack-1];
+        snode = &iter->u.s.stack[iter->u.s.nstack-1];
         snode->index--;
         if (snode->node->isleaf && snode->index > -1) {
             // Iterator now points to the next item
@@ -3822,9 +3825,9 @@ static void BGEN_SYM(iter_next_desc)(BGEN_ITER *iter) {
         }
         if (snode->node->isleaf) {
             // pop stack
-            while (iter->nstack > 1) {
-                iter->nstack--;
-                snode = &iter->stack[iter->nstack-1];
+            while (iter->u.s.nstack > 1) {
+                iter->u.s.nstack--;
+                snode = &iter->u.s.stack[iter->u.s.nstack-1];
                 snode->index--;
                 if (snode->index > -1) {
                     // Iterator now points to the next item
@@ -3844,8 +3847,8 @@ static void BGEN_SYM(iter_next_desc)(BGEN_ITER *iter) {
             return;
         }
         BGEN_NODE *node = snode->node->children[snode->index];
-        iter->stack[iter->nstack++] = (BGEN_SNODE){ node, node->len };
-        snode = &iter->stack[iter->nstack-1];
+        iter->u.s.stack[iter->u.s.nstack++] = (BGEN_SNODE){ node, node->len };
+        snode = &iter->u.s.stack[iter->u.s.nstack-1];
     }
 }
 
@@ -3885,17 +3888,18 @@ static int BGEN_SYM(nearby_addnodecontents)(BGEN_PQUEUE *queue,
 BGEN_NOINLINE
 static void BGEN_SYM(iter_next_nearby)(BGEN_ITER *iter) {
     // Begin popping queue items.
-    while (iter->queue.len > 0) {
-        BGEN_PITEM pitem = BGEN_SYM(ppop)(&iter->queue, iter->udata);
+    while (iter->u.n.queue.len > 0) {
+        BGEN_PITEM pitem = BGEN_SYM(ppop)(&iter->u.n.queue, iter->udata);
         if (pitem.index == UINT64_MAX) {
             // Queue item is a b-tree item. Return to user.
-            iter->nitem = pitem.item;
+            iter->u.n.nitem = pitem.u.item;
             return;
         } else {
             // Queue item is a node. Add the contents of node and continue 
             // popping queue items.
-            int status = BGEN_SYM(nearby_addnodecontents)(&iter->queue, 
-                pitem.node, iter->ntarget, iter->dist, iter->udata, iter->mut);
+            int status = BGEN_SYM(nearby_addnodecontents)(&iter->u.n.queue, 
+                pitem.u.node, iter->u.n.ntarget, iter->u.n.dist, iter->udata,
+                    iter->mut);
             if (status) {
                 iter->valid = false;
                 iter->status = status;
@@ -3923,7 +3927,7 @@ static void BGEN_SYM(iter_next)(BGEN_ITER *iter) {
     if (iter->kind == BGEN_SCAN) {
         // Fastpath for forward scanning iterators iter_seek and iter_scan,
         // where the next item is in a leaf. Fallback to the function call.
-        BGEN_SNODE *snode = &iter->stack[iter->nstack-1];
+        BGEN_SNODE *snode = &iter->u.s.stack[iter->u.s.nstack-1];
         if (snode->node->isleaf && snode->index+1 < snode->node->len) {
             snode->index++;
         } else {
@@ -3948,7 +3952,7 @@ static void BGEN_SYM(iter_scan)(BGEN_ITER *iter) {
     }
     BGEN_NODE *node = *iter->root;
     while (1) {
-        iter->stack[iter->nstack++] = (BGEN_SNODE){ node, 0 };
+        iter->u.s.stack[iter->u.s.nstack++] = (BGEN_SNODE){ node, 0 };
         if (node->isleaf) {
             return;
         }
@@ -3975,9 +3979,9 @@ static void BGEN_SYM(iter_scan_desc)(BGEN_ITER *iter) {
     }
     BGEN_NODE *node = *iter->root;
     while (1) {
-        iter->stack[iter->nstack++] = (BGEN_SNODE){ node, node->len };
+        iter->u.s.stack[iter->u.s.nstack++] = (BGEN_SNODE){ node, node->len };
         if (node->isleaf) {
-            iter->stack[iter->nstack-1].index--;
+            iter->u.s.stack[iter->u.s.nstack-1].index--;
             return;
         }
         if (iter->mut && !BGEN_SYM(cow)(&node->children[node->len],
@@ -3994,35 +3998,35 @@ static void BGEN_SYM(iter_scan_desc)(BGEN_ITER *iter) {
 #ifdef BGEN_SPATIAL
 // Finds the first intersecting item and fills the stack along the way.
 static bool BGEN_SYM(iter_intersects_first)(BGEN_ITER *iter, BGEN_NODE *node) {
-    int depth = iter->nstack;
-    iter->stack[iter->nstack++] = (BGEN_SNODE){ node, 0 };
+    int depth = iter->u.s.nstack;
+    iter->u.s.stack[iter->u.s.nstack++] = (BGEN_SNODE){ node, 0 };
     if (node->isleaf) {
         for (int i = 0; i < node->len; i++) {
             BGEN_RECT rect = BGEN_SYM(item_rect)(node->items[i], iter->udata);
-            if (BGEN_SYM(rect_intersects)(iter->itarget, rect)) {
-                iter->stack[depth].index = i;
+            if (BGEN_SYM(rect_intersects)(iter->u.s.itarget, rect)) {
+                iter->u.s.stack[depth].index = i;
                 return true;
             }
         }
     } else {
         for (int i = 0; i <= node->len; i++) {
-            if (BGEN_SYM(rect_intersects)(iter->itarget, node->rects[i])) {
+            if (BGEN_SYM(rect_intersects)(iter->u.s.itarget, node->rects[i])) {
                 if (BGEN_SYM(iter_intersects_first)(iter, node->children[i])) {
-                    iter->stack[depth].index = i;
+                    iter->u.s.stack[depth].index = i;
                     return true;
                 }
                 if (i < node->len) {
                     BGEN_RECT rect = BGEN_SYM(item_rect)(node->items[i], 
                         iter->udata);
-                    if (BGEN_SYM(rect_intersects)(iter->itarget, rect)) {
-                        iter->stack[depth].index = i;
+                    if (BGEN_SYM(rect_intersects)(iter->u.s.itarget, rect)) {
+                        iter->u.s.stack[depth].index = i;
                         return true;
                     }
                 }
             }
         }
     }
-    iter->nstack--;
+    iter->u.s.nstack--;
     return false;
 }
 #endif
@@ -4048,12 +4052,12 @@ static void BGEN_SYM(iter_seek)(BGEN_ITER *iter, BGEN_ITEM key) {
     while (1) {
         int found;
         int i = BGEN_SYM(search)(node, key, iter->udata, &found, depth);
-        iter->stack[iter->nstack++] = (BGEN_SNODE){ node, i };
+        iter->u.s.stack[iter->u.s.nstack++] = (BGEN_SNODE){ node, i };
         if (found) {
             return;
         }
         if (node->isleaf) {
-            iter->stack[iter->nstack-1].index--;
+            iter->u.s.stack[iter->u.s.nstack-1].index--;
             BGEN_SYM(iter_next)(iter);
             return;
         }
@@ -4082,14 +4086,14 @@ static void BGEN_SYM(iter_seek_at)(BGEN_ITER *iter, size_t index) {
     }
     BGEN_NODE *node = *iter->root;
     while (1) {
-        iter->stack[iter->nstack++] = (BGEN_SNODE){ node, 0 };
+        iter->u.s.stack[iter->u.s.nstack++] = (BGEN_SNODE){ node, 0 };
         if (node->isleaf) {
             if (index >= (size_t)node->len) {
-                iter->stack[iter->nstack-1].index = node->len;
+                iter->u.s.stack[iter->u.s.nstack-1].index = node->len;
             } else {
-                iter->stack[iter->nstack-1].index = index;
+                iter->u.s.stack[iter->u.s.nstack-1].index = index;
             }
-            iter->stack[iter->nstack-1].index--;
+            iter->u.s.stack[iter->u.s.nstack-1].index--;
             BGEN_SYM(iter_next)(iter);
             return;
         }
@@ -4103,7 +4107,7 @@ static void BGEN_SYM(iter_seek_at)(BGEN_ITER *iter, size_t index) {
             }
             index -= count + 1;
         }
-        iter->stack[iter->nstack-1].index = i;
+        iter->u.s.stack[iter->u.s.nstack-1].index = i;
         if (found) {
             return;
         }
@@ -4129,12 +4133,12 @@ static void BGEN_SYM(iter_seek_at_desc)(BGEN_ITER *iter, size_t index) {
     }
     BGEN_NODE *node = *iter->root;
     while (1) {
-        iter->stack[iter->nstack++] = (BGEN_SNODE){ node, 0 };
+        iter->u.s.stack[iter->u.s.nstack++] = (BGEN_SNODE){ node, 0 };
         if (node->isleaf) {
             if (index >= (size_t)node->len) {
-                iter->stack[iter->nstack-1].index = node->len-1;
+                iter->u.s.stack[iter->u.s.nstack-1].index = node->len-1;
             } else {
-                iter->stack[iter->nstack-1].index = index;
+                iter->u.s.stack[iter->u.s.nstack-1].index = index;
             }
             return;
         }
@@ -4148,7 +4152,7 @@ static void BGEN_SYM(iter_seek_at_desc)(BGEN_ITER *iter, size_t index) {
             }
             index -= count + 1;
         }
-        iter->stack[iter->nstack-1].index = i;
+        iter->u.s.stack[iter->u.s.nstack-1].index = i;
         if (found) {
             return;
         }
@@ -4170,8 +4174,8 @@ static void BGEN_SYM(iter_intersects)(BGEN_ITER *iter, BGEN_RTYPE min[],
     iter->valid = false;
 #else
     for (int i = 0; i < BGEN_DIMS; i++) {
-        iter->itarget.min[i] = min[i];
-        iter->itarget.max[i] = max[i];
+        iter->u.s.itarget.min[i] = min[i];
+        iter->u.s.itarget.max[i] = max[i];
     }
     if (!*iter->root) {
         iter->valid = false;
@@ -4196,8 +4200,8 @@ static void BGEN_SYM(iter_nearby)(BGEN_ITER *iter, void *target,
     (void)iter, (void)target, (void)dist;
     iter->valid = false;
 #else
-    iter->ntarget = target;
-    iter->dist = dist;
+    iter->u.n.ntarget = target;
+    iter->u.n.dist = dist;
     if (!*iter->root) {
         iter->valid = false;
         return;
@@ -4209,14 +4213,14 @@ static void BGEN_SYM(iter_nearby)(BGEN_ITER *iter, void *target,
         iter->valid = false;
         return;
     }
-    iter->status = BGEN_SYM(nearby_addnodecontents)(&iter->queue, *iter->root, 
-        target, iter->dist, iter->udata, iter->mut);
+    iter->status = BGEN_SYM(nearby_addnodecontents)(&iter->u.n.queue, 
+        *iter->root, target, iter->u.n.dist, iter->udata, iter->mut);
     if (iter->status) {
         iter->valid = false;
         return;
     }
     // At this point there must be at least one item in the queue.
-    BGEN_ASSERT(iter->queue.len > 0);
+    BGEN_ASSERT(iter->u.n.queue.len > 0);
     // Call next to get the first nearby item.
     BGEN_SYM(iter_next_nearby)(iter);
 #endif
@@ -4227,11 +4231,11 @@ static void BGEN_SYM(iter_nearby)(BGEN_ITER *iter, void *target,
 static void BGEN_SYM(iter_item)(BGEN_ITER *iter, BGEN_ITEM *item) {
 #ifdef BGEN_SPATIAL
     if (iter->kind == BGEN_NEARBY) {
-        *item = iter->nitem;
+        *item = iter->u.n.nitem;
         return;
     }
 #endif
-    BGEN_SNODE *snode = &iter->stack[iter->nstack-1];
+    BGEN_SNODE *snode = &iter->u.s.stack[iter->u.s.nstack-1];
     *item = snode->node->items[snode->index];
 }
 
@@ -4429,14 +4433,14 @@ static int BGEN_SYM(nearby0)(BGEN_NODE **root, void *target,
         BGEN_PITEM pitem = BGEN_SYM(ppop)(&queue, udata);
         if (pitem.index == UINT64_MAX) {
             // Queue item is a b-tree item. Return to user.
-            if (!iter(pitem.item, udata)) {
+            if (!iter(pitem.u.item, udata)) {
                 status = BGEN_STOPPED;
                 goto done;
             }
         } else {
             // Queue item is a node. Add the contents of node and continue 
             // popping queue items.
-            status = BGEN_SYM(nearby_addnodecontents)(&queue, pitem.node,
+            status = BGEN_SYM(nearby_addnodecontents)(&queue, pitem.u.node,
                 target, dist, udata, mut);
             if (status) {
                 goto done;
