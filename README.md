@@ -550,6 +550,25 @@ while (users_iter_valid(&iter)) {
 users_iter_release(&iter);
 ```
 
+It's usually not safe to modify the btree while iterating. 
+If you need to filter data then it's best to reset the iterator after
+each modification.
+
+```c
+struct users_iter iter;
+users_iter_init(&users, &iter, 0);
+users_iter_scan(&iter);
+while (users_iter_valid(&iter)) {
+    users_iter_item(&iter, &user);
+    if (user.age >= 30 && user.age < 40) {
+        users_delete(&users, user, 0, 0);
+        users_iter_seek(&iter, user);
+        continue;
+    } 
+    users_iter_next(&iter);
+}
+```
+
 ## Status codes 
 
 Most btree operations, such as `bt_get()` and `bt_insert()` return status
