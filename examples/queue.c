@@ -25,7 +25,7 @@ int main() {
     assert(val == 3);
     assert(queue_count(&queue, 0) == 4);
  
-    // remove the first element, 0
+    // Remove the first element, 0
     queue_pop_front(&queue, &val, 0); 
     assert(val == 0);
     assert(queue_count(&queue, 0) == 3);

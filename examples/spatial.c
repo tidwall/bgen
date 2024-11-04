@@ -81,7 +81,7 @@ int main() {
     printf("\n");
 
     // Find nearest 10 cities to (-113, 33)
-    // This uses
+    // This uses a kNN operation
     struct point point = { .lon = -113, .lat = 33 };
     printf("Top 10 cities nearby point (%.0f %0.f):\n", point.lon, point.lat);
     cities_iter_init(&cities, &iter, 0);

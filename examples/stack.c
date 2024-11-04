@@ -25,7 +25,7 @@ int main() {
     assert(val == 3);
     assert(stack_count(&stack, 0) == 4);
 
-    // remove the back element, 3
+    // Remove the back element, 3
     stack_pop_back(&stack, &val, 0); 
     assert(val == 3);
     assert(stack_count(&stack, 0) == 3);

@@ -3,13 +3,13 @@
 #define BGEN_NAME bt            // The namespace for the btree structure.
 #define BGEN_TYPE int           // The data type for all items in the btree
 #define BGEN_LESS return a < b; // A code fragment for comparing items
-#include "../bgen.h"               // Include "bgen.h" to generate the btree
+#include "../bgen.h"            // Include "bgen.h" to generate the btree
 
 int main() {
     // Create an empty btree instance.
     struct bt *tree = 0;
 
-    // insert some items into the btree
+    // Insert some items into the btree
     bt_insert(&tree, 3, 0, 0);
     bt_insert(&tree, 8, 0, 0);
     bt_insert(&tree, 2, 0, 0);

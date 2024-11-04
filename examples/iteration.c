@@ -27,10 +27,10 @@ bool user_iter(struct user user, void *udata) {
 #include "../bgen.h"
 
 int main() {
-    // create a new btree.
+    // Create a new btree.
     struct users *users = 0;
 
-    // load some users into the btree.
+    // Load some users into the btree.
     users_insert(&users, (struct user){ .first="Dale", .last="Murphy", .age=44 }, 0, 0);
     users_insert(&users, (struct user){ .first="Roger", .last="Craig", .age=68 }, 0, 0);
     users_insert(&users, (struct user){ .first="Jane", .last="Murphy", .age=47 }, 0, 0);

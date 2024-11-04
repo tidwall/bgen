@@ -28,21 +28,21 @@ void print_map(const char *comment, struct map **map) {
 }
 
 int main() {
-       // Create a map of three (string, int) pairs
+    // Create a map of three (string, int) pairs
     struct map *map = 0;
     map_insert(&map, (struct pair){"GPU", 15}, 0, 0);
     map_insert(&map, (struct pair){"RAM", 20}, 0, 0);
     map_insert(&map, (struct pair){"CPU", 10}, 0, 0);
     print_map("1) Initial map:  ", &map);
 
-    // get an existing item
+    // Get an existing item
     struct pair item;
     assert(map_get(&map, (struct pair){"GPU"}, &item, 0) == map_FOUND);
     printf("2) Get item:     [%s] = %d;\n", item.key, item.value);
 
-    // update an existing item
+    // Update an existing item
     assert(map_insert(&map, (struct pair){"CPU", 25}, 0, 0) == map_REPLACED);
-    // insert a new item
+    // Insert a new item
     assert(map_insert(&map, (struct pair){"SSD", 30}, 0, 0) == map_INSERTED); 
     print_map("3) Updated map:  ", &map);
     assert(map_insert(&map, (struct pair){"UPS"}, 0, 0) == map_INSERTED); 
