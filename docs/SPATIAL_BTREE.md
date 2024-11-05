@@ -112,19 +112,15 @@ but is functionally more similar to the
 [R-tree](https://en.wikipedia.org/wiki/R-tree) and the 
 [UB-tree](https://en.wikipedia.org/wiki/UB-tree).
 
-<h3>R-tree</h3>
-<p>
+### R-tree
+
 Like the R-tree each child rectangle is the minimum bounding
 rectangle of the entire child tree.
-</p>
 
-<p>
 A difference is that the R-tree stores all items at the leaf level, just 
 like a B+Tree. While the Spatial B-tree stores items in the branches and leaves,
 just like a standard B-tree.
-</p>
 
-<p>
 Another difference is that during insertion the R-tree and it's variants, such
 as the R*tree, go to great lengths to determine the best ordering of the branch
 rectangles and items. Whenever a new item is inserted into an R-tree, from root
@@ -132,17 +128,13 @@ to leaf, a complicated algorithm is used to choose the best child node to insert
 the item into. Depending the quality of that algorithm, which isn't always 
 identical with every implementations, the performance of inserting and
 searching can vary greatly.
-</p>
 
-<p>
 The Spatial B-tree on the other hand inserts items exactly like a standard
-B-tree, by ordering on the item's key. As <a href="#key-order">stated above</a>,
+B-tree, by ordering on the item's key. As [stated above](#key-order),
 this means that you must choose your keys wisely.
-<p>
 
-<p>
 One R-tree variant worth noting is the 
-<a href="https://en.wikipedia.org/wiki/Hilbert_R-tree">Hilbert R-tree</a>, which 
+[Hilbert R-tree](https://en.wikipedia.org/wiki/Hilbert_R-tree), which 
 stores items in linear order using a Hilbert curve. This provides excellent 
 search performance compared to other R-trees, and its ordering of items is very 
 similar to a Spatial B-tree using a Hilbert curve in its key. But the 
@@ -150,52 +142,48 @@ structure is a bit more complicated that a traditional R-tree, it must
 track both LHVs (Largest Hilbert Value) and MBRs (Minimum Bounding Rectangle) 
 for leaves and branches. This leads to extra work to maintain. And insertions
 and deletions are generally less efficient than a Spatial B-tree.
-</p>
 
-
-<h3>UB-tree</h3>
-<p>
+### UB-tree
 The Spatial B-tree and UB-tree both store items linearly based on the key. 
-</p>
 
-<p>
 The UB-tree stores all items in the leaves (just like the R-tree), while the 
 Spatial B-tree stores items in branches and leaves, like a standard B-tree.
-</p>
 
-<p>
 Another difference is that the UB-tree is designed to order on a Z-order curve, 
 while the Spatial B-tree doesn't care, leaving it up to you what the ordering 
 is. This opens up the Spatial B-tree to different strategies, such as Z-order 
 or Hilbert or something else.
-</p>
 
-<p>
 Also the UB-tree does not store the MBRs (Minimum Bounding Rectangle) and
 thus cannot scan the tree for intersections like an R-tree and Spatial B-tree.
 Instead it needs to use an algorithm which basically looks
 at ranges of the Z-curve to find nearby nodes that overlap a target area.
 Effectively working kind of like the
-<a href="https://www.ibm.com/docs/en/db2/11.5?topic=concepts-geohashes-geohash-covers">Geohash covers</a>
+[Geohash covers](https://www.ibm.com/docs/en/db2/11.5?topic=concepts-geohashes-geohash-covers)
 algorithm.
-</p>
 
-<p>
 In general the Spatial B-tree is designed to search like an R-tree but have the
 simplicity of a standard B-tree.
-</p>
 
-<p>
 One more thing, the Spatial B-tree and UB-tree guarantee stable ordering 
 of items, meaning that no matter what the order of inserts and deletes for a
 specific set of items might be, those items will always be returned in the same
 order when searching. R-tree ordering is unstable. This may be an important
 detail if you desire deterministic results.
-</p>
 
-<h2>Implementation</h2>
+## Performance
 
-<p>
-You can use the Spatial B-tree today using the 
-<a href="https://github.com/tidwall/bgen">Bgen B-tree Generator</a> for C.
-</p>
+The Spatial B-tree is as fast as a standard B-tree for inserts and deletes, which
+generally beats the R-tree. And is as fast as a Hilbert R-tree for searches when
+using hilbert curves.
+
+Much depends on the quality of the implementation when measuring the performance of 
+these kinds of data structures.
+
+Here are some [benchmark results](https://github.com/tidwall/bgen#performance) comparing the Spatial B-tree to an 
+R-tree with hilbert ordered inserts.  
+And here's a fast C library for calculating a hilbert curve. [tidwall/curve](https://github.com/tidwall/curve).
+
+## Implementation
+
+You can use the Spatial B-tree today using the [bgen: B-tree generator for C](https://github.com/tidwall/bgen).
