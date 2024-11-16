@@ -412,7 +412,7 @@ The BGEN_MALLOC and BGEN_FREE can be used to provide a custom allocator for
 all btree operations. By default, the built-in `malloc()` and `free()`
 functions from `<stdlib.h>` are used. 
 
-BGEN_MALLOC provides the `size` and `udata` variables.
+BGEN_MALLOC provides the `size` and `udata` variables.  
 BGEN_FREE provides the `ptr` and `udata` variables.
 
 ```c
