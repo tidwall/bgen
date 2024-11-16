@@ -9,8 +9,8 @@
 #define BGEN_NAME     bt1
 #define BGEN_TYPE     int
 #define BGEN_COW
-#define BGEN_MALLOC   malloc0
-#define BGEN_FREE     free0
+#define BGEN_MALLOC   { return malloc0(size); }
+#define BGEN_FREE     { free0(ptr); }
 #define BGEN_LESS     { return a < b; }
 #include "../bgen.h"
 
@@ -51,8 +51,8 @@ bool col_copy(struct col *col, struct col **copy, void *udata) {
 #define BGEN_NAME     bt0
 #define BGEN_TYPE     struct col*     /* pointer to a collection */
 #define BGEN_COW
-#define BGEN_MALLOC   malloc0
-#define BGEN_FREE     free0
+#define BGEN_MALLOC   { return malloc0(size); }
+#define BGEN_FREE     { free0(ptr); }
 #define BGEN_ITEMCOPY { return col_copy(item, copy, udata); }
 #define BGEN_ITEMFREE { col_free(item, udata); }
 #define BGEN_COMPARE  { return strcmp(a->name, b->name); }
