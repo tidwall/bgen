@@ -246,8 +246,8 @@ set using the C preprocessor.
 | BGEN_LESS `<code>`           | Define a "less" [comparator](#comparators). Such as "a<b" |
 | BGEN_COMPARE `<code>`        | Define a "compare" [comparator](#comparators). Such as "a<b?-1:a>b" |
 | BGEN_MAYBELESSEQUAL `<code>` | Define a [less-equal hint](#less-equal-hint) for complex compares (advanced) |
-| BGEN_MALLOC `<func>`         | Define [custom malloc](#custom-allocators) function |
-| BGEN_FREE `<func>`           | Define [custom free](#custom-allocators) function |
+| BGEN_MALLOC `<code>`         | Define [custom malloc](#custom-allocators) function |
+| BGEN_FREE `<code>`           | Define [custom free](#custom-allocators) function |
 | BGEN_BSEARCH                 | Enable [binary searching](#binary-search-or-linear-search) (otherwise [linear](#binary-search-or-linear-search)) |
 | BGEN_COW                     | Enable [copy-on-write](#copy-on-write) support |
 | BGEN_COUNTED                 | Enable [counted btree](#counted-b-tree) support |
@@ -412,9 +412,12 @@ The BGEN_MALLOC and BGEN_FREE can be used to provide a custom allocator for
 all btree operations. By default, the built-in `malloc()` and `free()`
 functions from `<stdlib.h>` are used. 
 
+BGEN_MALLOC provides the `size` and `udata` variables.
+BGEN_FREE provides the `ptr` and `udata` variables.
+
 ```c
-#define BGEN_MALLOC mymalloc
-#define BGEN_FREE   myfree
+#define BGEN_MALLOC return mymalloc(size);
+#define BGEN_FREE   myfree(ptr);
 ```
 
 Bgen is designed for graceful error handling when malloc fails.

@@ -19,8 +19,8 @@ int C = 0;        // -1 = worse-case, 0 = average, +1 = best-case
 
 #define BGEN_NAME      kv
 #define BGEN_TYPE      int
-#define BGEN_MALLOC    malloc0
-#define BGEN_FREE      free0
+#define BGEN_MALLOC    return malloc0(size);
+#define BGEN_FREE      free0(ptr);
 #ifdef COW
 #define BGEN_COW
 #endif

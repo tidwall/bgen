@@ -8,8 +8,8 @@
 #define BGEN_COUNTED
 #define BGEN_ASSERT
 #define BGEN_FANOUT   16
-#define BGEN_MALLOC   malloc0
-#define BGEN_FREE     free0
+#define BGEN_MALLOC   return malloc0(size);
+#define BGEN_FREE     free0(ptr);
 #define BGEN_NOORDER
 #include "../bgen.h"
 

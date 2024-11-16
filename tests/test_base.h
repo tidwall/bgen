@@ -108,8 +108,8 @@ void free1(void *ptr) {
 #endif
 #define BGEN_ASSERT
 #define BGEN_FANOUT   16
-#define BGEN_MALLOC   malloc1
-#define BGEN_FREE     free1
+#define BGEN_MALLOC   { return malloc1(size); }
+#define BGEN_FREE     { free1(ptr); }
 #define BGEN_ITEMCOPY { return item_copy(item, copy, udata); }
 #define BGEN_ITEMFREE { item_free(item, udata); }
 #ifdef NOORDER

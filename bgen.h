@@ -90,8 +90,8 @@
 // Provide a custom allocator using BGEN_MALLOC and BGEN_FREE.
 // Such as:
 //
-//     #define BGEN_MALLOC my_malloc
-//     #define BGEN_FREE   my_free
+//     #define BGEN_MALLOC return my_malloc(size);
+//     #define BGEN_FREE   my_free(ptr);
 //
 // This will ensure that the tree will always use my_malloc/my_free instead of
 // the standard malloc/free.
@@ -100,11 +100,11 @@
 #include <stdlib.h>
 
 #ifndef BGEN_MALLOC
-#define BGEN_MALLOC malloc
+#define BGEN_MALLOC return malloc(size);
 #endif
 
 #ifndef BGEN_FREE
-#define BGEN_FREE free
+#define BGEN_FREE free(ptr);
 #endif
 #endif
 
@@ -339,6 +339,17 @@ BGEN_EXTERN int BGEN_API(seek_at_desc_mut)(BGEN_NODE **root, size_t index,
 #ifndef BGEN_DEFS
 
 // IMPLEMENTATION
+
+static void *BGEN_SYM(malloc)(size_t size, void *udata) {
+    (void)size, (void)udata;
+    BGEN_MALLOC
+}
+
+
+static void BGEN_SYM(free)(void *ptr, void *udata) {
+    (void)ptr, (void)udata;
+    BGEN_FREE
+}
 
 #ifdef BGEN_LESS
 #ifdef BGEN_COMPARE
@@ -586,9 +597,10 @@ static int BGEN_SYM(feat_dims)(void) {
 #endif
 }
 
-static BGEN_NODE *BGEN_SYM(alloc_node)(bool isleaf) {
-    void *ptr = isleaf ? BGEN_MALLOC(offsetof(BGEN_NODE, children)) :
-        BGEN_MALLOC(sizeof(BGEN_NODE));
+static BGEN_NODE *BGEN_SYM(alloc_node)(bool isleaf, void *udata) {
+    void *ptr = isleaf ? 
+        BGEN_SYM(malloc)(offsetof(BGEN_NODE, children), udata) :
+        BGEN_SYM(malloc)(sizeof(BGEN_NODE), udata);
     if (!ptr) {
         return 0;
     }
@@ -844,7 +856,7 @@ static size_t BGEN_SYM(node_count)(BGEN_NODE *branch, int node_index) {
 #endif
 }
 
-static void BGEN_SYM(free)(BGEN_NODE *node, void *udata) {
+static void BGEN_SYM(node_free)(BGEN_NODE *node, void *udata) {
 #ifdef BGEN_COW
     if (BGEN_SYM(rc_fetch_sub)(&node->rc, 1) > 0) {
         return;
@@ -852,19 +864,19 @@ static void BGEN_SYM(free)(BGEN_NODE *node, void *udata) {
 #endif
     if (!node->isleaf) {
         for (int i = 0; i < node->len+1; i++) {
-            BGEN_SYM(free)(node->children[i], udata);
+            BGEN_SYM(node_free)(node->children[i], udata);
         }
     }
     for (int i = 0; i < node->len; i++) {
         BGEN_SYM(item_free)(node->items[i], udata);
     }
-    BGEN_FREE(node);
+    BGEN_SYM(free)(node, udata);
 }
 
 /// Free the tree!
 static void BGEN_SYM(clear)(BGEN_NODE **root, void *udata) {
     if (*root) {
-        BGEN_SYM(free)(*root, udata);
+        BGEN_SYM(node_free)(*root, udata);
         *root = 0;
     }
 }
@@ -1102,7 +1114,7 @@ static void BGEN_SYM(print)(BGEN_NODE **root, FILE *file,
 }
 
 static BGEN_NODE *BGEN_SYM(node_copy)(BGEN_NODE *node, bool deep, void *udata) {
-    BGEN_NODE *node2 = BGEN_SYM(alloc_node)(node->isleaf);
+    BGEN_NODE *node2 = BGEN_SYM(alloc_node)(node->isleaf, udata);
     if (!node2) {
         return 0;
     }
@@ -1158,10 +1170,10 @@ fail:
     }
     if (!node->isleaf) {
         for (int i = 0; i < ccopied; i++) {
-            BGEN_SYM(free)(node2->children[i], udata);
+            BGEN_SYM(node_free)(node2->children[i], udata);
         }
     }
-    BGEN_FREE(node2);
+    BGEN_SYM(free)(node2, udata);
     return 0;
 }
 
@@ -1186,7 +1198,7 @@ static bool BGEN_SYM(cow)(BGEN_NODE **node, void *udata) {
         if (!node2) {
             return false;
         }
-        BGEN_SYM(free)(*node, udata);
+        BGEN_SYM(node_free)(*node, udata);
         *node = node2;
     }
 #endif
@@ -1953,7 +1965,7 @@ static BGEN_NODE *BGEN_SYM(split)(BGEN_NODE *left, BGEN_ITEM *mitem,
     void *udata)
 {
     (void)udata;
-    BGEN_NODE *right = BGEN_SYM(alloc_node)(left->isleaf);
+    BGEN_NODE *right = BGEN_SYM(alloc_node)(left->isleaf, udata);
     if (!right) {
         return 0;
     }
@@ -1987,7 +1999,7 @@ static BGEN_NODE *BGEN_SYM(split)(BGEN_NODE *left, BGEN_ITEM *mitem,
 static bool BGEN_SYM(split_root)(BGEN_NODE **root, void *udata) {
     (void)udata;
     BGEN_ASSERT(!BGEN_SYM(shared)(*root));
-    BGEN_NODE *newroot = BGEN_SYM(alloc_node)(0);
+    BGEN_NODE *newroot = BGEN_SYM(alloc_node)(0, udata);
     if (!newroot) {
         return false;
     }
@@ -1996,7 +2008,7 @@ static bool BGEN_SYM(split_root)(BGEN_NODE **root, void *udata) {
     newroot->children[0] = *root;
     newroot->children[1] = BGEN_SYM(split)(*root, &newroot->items[0], udata);
     if (!newroot->children[1]) {
-        BGEN_FREE(newroot);
+        BGEN_SYM(free)(newroot, udata);
         return false;
     }
 #ifdef BGEN_COUNTED
@@ -2285,7 +2297,7 @@ static int BGEN_SYM(insert0)(BGEN_NODE **root, int act, size_t index,
         if (act == BGEN_REPAT || (act == BGEN_INSAT && index > 0)) {
             return BGEN_NOTFOUND;
         }
-        *root = BGEN_SYM(alloc_node)(1);
+        *root = BGEN_SYM(alloc_node)(1, udata);
         if (!*root) {
             return BGEN_NOMEM;
         }
@@ -2517,7 +2529,7 @@ static void BGEN_SYM(rebalance)(BGEN_NODE *node, int i, void *udata) {
 #ifdef BGEN_COUNTED
         size_t count = node->counts[i] + 1 + node->counts[i+1];
 #endif
-        BGEN_FREE(right);
+        BGEN_SYM(free)(right, udata);
         BGEN_SYM(shift_left)(node, i, 1, true);
 #ifdef BGEN_COUNTED
         node->counts[i] = count;
@@ -2709,7 +2721,7 @@ static int BGEN_SYM(delete0)(BGEN_NODE **root, int act, BGEN_ITEM key,
     if ((*root)->len == 0) {
         BGEN_NODE *old_root = *root;
         *root = (*root)->isleaf ? 0 : (*root)->children[0];
-        BGEN_FREE(old_root);
+        BGEN_SYM(free)(old_root, udata);
     }
     return BGEN_DELETED;
 }
@@ -2824,7 +2836,7 @@ static int BGEN_SYM(delete_fastpath)(BGEN_NODE **root, BGEN_ITEM key,
             #ifdef BGEN_COUNTED
                     size_t count = parent->counts[i] + 1 + parent->counts[i+1];
             #endif
-                    BGEN_FREE(right);
+                    BGEN_SYM(free)(right, udata);
                     BGEN_SYM(shift_left)(parent, i, 1, true);
             #ifdef BGEN_COUNTED
                     parent->counts[i] = count;
@@ -3552,9 +3564,9 @@ static int BGEN_SYM(pcompare)(BGEN_PQUEUE *queue, size_t i, size_t j,
         udata);
 }
 
-static void BGEN_SYM(pclear)(BGEN_PQUEUE *queue) {
+static void BGEN_SYM(pclear)(BGEN_PQUEUE *queue, void *udata) {
     if (queue->items) {
-        BGEN_FREE(queue->items);
+        BGEN_SYM(free)(queue->items, udata);
     }
     BGEN_SYM(pqueue_init)(queue);
 }
@@ -3577,14 +3589,15 @@ static BGEN_PITEM BGEN_SYM(pswap_remove)(BGEN_PQUEUE *queue, size_t i) {
 static int BGEN_SYM(ppush0)(BGEN_PQUEUE *queue, BGEN_PITEM item, void *udata) {
     if (queue->len == queue->cap) {
         queue->cap = queue->cap == 0 ? 8 : queue->cap*2;
-        BGEN_PITEM *items2 = BGEN_MALLOC(sizeof(BGEN_PITEM)*queue->cap);
+        BGEN_PITEM *items2 = BGEN_SYM(malloc)(sizeof(BGEN_PITEM)*queue->cap,
+            udata);
         if (!items2) {
             return BGEN_NOMEM;
         }
         for (size_t i = 0; i < queue->len; i++) {
             items2[i] = queue->items[i];
         }
-        BGEN_FREE(queue->items);
+        BGEN_SYM(free)(queue->items, udata);
         queue->items = items2;
     }
     queue->items[queue->len++] = item;
@@ -3714,7 +3727,7 @@ static void BGEN_SYM(iter_reset)(BGEN_ITER *iter, int kind) {
     if (iter->kind == BGEN_NEARBY && kind != BGEN_NEARBY) {
         // printf("B\n");
         // switching from NEARBY to SCAN
-        BGEN_SYM(pclear)(&iter->u.n.queue);
+        BGEN_SYM(pclear)(&iter->u.n.queue, iter->udata);
     } else if (iter->kind != BGEN_NEARBY && kind == BGEN_NEARBY) {
         // printf("C\n");
         // switching from SCAN to NEARBY
@@ -3730,7 +3743,7 @@ static void BGEN_SYM(iter_release)(BGEN_ITER *iter) {
     (void)iter;
 #ifdef BGEN_SPATIAL
     if (iter->kind == BGEN_NEARBY) {
-        BGEN_SYM(pclear)(&iter->u.n.queue);
+        BGEN_SYM(pclear)(&iter->u.n.queue, iter->udata);
     }
 #endif
 }
@@ -4448,7 +4461,7 @@ static int BGEN_SYM(nearby0)(BGEN_NODE **root, void *target,
         }
     }
 done:
-    BGEN_SYM(pclear)(&queue);
+    BGEN_SYM(pclear)(&queue, udata);
     if (status == 0) {
         status = BGEN_FINISHED;
     }
