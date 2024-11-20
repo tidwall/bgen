@@ -57,15 +57,15 @@ int main() {
     users_seek(&users, (struct user){ .first="", .last="Murphy" }, user_iter, NULL);
 
     printf("\n-- loop iterator (same as previous) --\n");
-    struct users_iter iter;
+    struct users_iter *iter;
     users_iter_init(&users, &iter, 0);
-    users_iter_seek(&iter, (struct user){.first="", .last="Murphy"});
-    while (users_iter_valid(&iter)) {
-        users_iter_item(&iter, &user);
+    users_iter_seek(iter, (struct user){.first="", .last="Murphy"});
+    while (users_iter_valid(iter)) {
+        users_iter_item(iter, &user);
         printf("%s %s (age=%d)\n", user.first, user.last, user.age);
-        users_iter_next(&iter);
+        users_iter_next(iter);
     }
-    users_iter_release(&iter);
+    users_iter_release(iter);
 
     return 0;
 }

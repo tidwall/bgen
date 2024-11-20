@@ -17,13 +17,14 @@ struct pair {
 
 void print_map(const char *comment, struct map **map) {
     printf("%s", comment);
-    struct map_iter iter;
+    struct map_iter *iter;
     map_iter_init(map, &iter, 0);
-    for (map_iter_scan(&iter); map_iter_valid(&iter); map_iter_next(&iter)) {
+    for (map_iter_scan(iter); map_iter_valid(iter); map_iter_next(iter)) {
         struct pair pair;
-        map_iter_item(&iter, &pair);
+        map_iter_item(iter, &pair);
         printf("[%s] = %d; ", pair.key, pair.value);
     }
+    map_iter_release(iter);
     printf("\n");
 }
 

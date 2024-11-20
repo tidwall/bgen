@@ -167,14 +167,15 @@ void test_intersects(void) {
             kv_intersects(&tree, min, max, iiter, &ctx2);
             // printf("\033[1;34m>>> iter_intersects\033[0m\n");
             struct iiter_ctx ctx3 = { .min = min, .max = max, .results = results3 };
-            struct kv_iter iter;
+            struct kv_iter *iter;
             kv_iter_init(&tree, &iter, 0);
-            kv_iter_intersects(&iter, min, max);
-            for (; kv_iter_valid(&iter); kv_iter_next(&iter)) {
+            kv_iter_intersects(iter, min, max);
+            for (; kv_iter_valid(iter); kv_iter_next(iter)) {
                 struct point point;
-                kv_iter_item(&iter, &point);
+                kv_iter_item(iter, &point);
                 siter(point, &ctx3);
             }
+            kv_iter_release(iter);
             assert(iiter_ctx_equal(ctx1, ctx2));
             if (!iiter_ctx_equal(ctx2, ctx3)) {
                 tree_print(&tree);

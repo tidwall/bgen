@@ -16,11 +16,11 @@ int main() {
     bt_insert(&tree, 5, 0, 0);
 
     // Print items in tree
-    struct bt_iter iter;
+    struct bt_iter *iter;
     bt_iter_init(&tree, &iter, 0);
-    for (bt_iter_scan(&iter); bt_iter_valid(&iter); bt_iter_next(&iter)) {
+    for (bt_iter_scan(iter); bt_iter_valid(iter); bt_iter_next(iter)) {
         int item;
-        bt_iter_item(&iter, &item);
+        bt_iter_item(iter, &item);
         printf("%d ", item);
     } 
     printf("\n");
@@ -29,12 +29,14 @@ int main() {
     bt_delete(&tree, 3, 0, 0);
 
     // Print again
-    for (bt_iter_scan(&iter); bt_iter_valid(&iter); bt_iter_next(&iter)) {
+    for (bt_iter_scan(iter); bt_iter_valid(iter); bt_iter_next(iter)) {
         int item;
-        bt_iter_item(&iter, &item);
+        bt_iter_item(iter, &item);
         printf("%d ", item);
     } 
     printf("\n");
+
+    bt_iter_release(iter);
 
     bt_clear(&tree, 0);
     return 0;

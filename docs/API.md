@@ -263,25 +263,26 @@ int bt_nearby(struct bt **root, void *target,
 
 ```c
 /// Initialize an iterator
-void bt_iter_init(struct bt **root, biter *iter, void *udata);
+/// Make sure to call bt_iter_release() when done iterating.
+void bt_iter_init(struct bt **root, struct bt_iter **iter, void *udata);
 
 /// Release the iterator when it's no longer needed
-void bt_iter_release(biter *iter);
+void bt_iter_release(struct bt_iter *iter);
 
 /// Returns an error status code of the iterator, or zero if no error.
-int bt_iter_status(biter *iter);
+int bt_iter_status(struct bt_iter *iter);
 
 /// Returns true if the iterator is valid and an item, using bt_iter_item() is 
 /// available.
-bool bt_iter_valid(biter *iter);
+bool bt_iter_valid(struct bt_iter *iter);
 
 /// Get the current iterator item. 
 /// REQUIRED: iter_valid() and item != NULL
-void bt_iter_item(biter *iter, bitem *item);
+void bt_iter_item(struct bt_iter *iter, bitem *item);
 
 /// Move to the next item
 /// REQUIRED: iter_valid()
-void bt_iter_next(biter *iter);
+void bt_iter_next(struct bt_iter *iter);
 
 /// Seek to a key in the btree and iterate over each subsequent item.
 void bt_iter_seek(struct bt_iter *iter, bitem key);

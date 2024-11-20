@@ -68,16 +68,16 @@ int main() {
     double max[] = { -111, 34 };
     printf("Cities inside rectangle ((%.0f %0.f) (%.0f %0.f)):\n", 
         min[0], min[1], max[0], max[1]);
-    struct cities_iter iter;
+    struct cities_iter *iter;
     cities_iter_init(&cities, &iter, 0);
-    cities_iter_intersects(&iter, min, max);
-    while (cities_iter_valid(&iter)) {
+    cities_iter_intersects(iter, min, max);
+    while (cities_iter_valid(iter)) {
         struct city city;
-        cities_iter_item(&iter, &city);
+        cities_iter_item(iter, &city);
         printf("- %s\n", city.city);
-        cities_iter_next(&iter);
+        cities_iter_next(iter);
     }
-    cities_iter_release(&iter);
+    cities_iter_release(iter);
     printf("\n");
 
     // Find nearest 10 cities to (-113, 33)
@@ -85,16 +85,16 @@ int main() {
     struct point point = { .lon = -113, .lat = 33 };
     printf("Top 10 cities nearby point (%.0f %0.f):\n", point.lon, point.lat);
     cities_iter_init(&cities, &iter, 0);
-    cities_iter_nearby(&iter, &point, calcdist);
+    cities_iter_nearby(iter, &point, calcdist);
     int n = 0;
-    while (n < 10 && cities_iter_valid(&iter)) {
+    while (n < 10 && cities_iter_valid(iter)) {
         struct city city;
-        cities_iter_item(&iter, &city);
+        cities_iter_item(iter, &city);
         printf("- %s\n", city.city);
-        cities_iter_next(&iter);
+        cities_iter_next(iter);
         n++;
     }
-    cities_iter_release(&iter);
+    cities_iter_release(iter);
     printf("\n");
 
     return 0;

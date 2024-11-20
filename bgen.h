@@ -109,7 +109,11 @@
 #endif
 
 #ifndef BGEN_EXTERN
+#ifdef BGEN_HEADER
+#define BGEN_EXTERN extern
+#else
 #define BGEN_EXTERN static
+#endif
 #endif
 
 // Enable Spatial B-tree support
@@ -162,7 +166,6 @@ Visit https://github.com/tidwall/bgen for more information.
 #define BGEN_SNODE struct BGEN_SYM(snode)
 #define BGEN_RECT struct BGEN_SYM(rect)
 
-// Definitions
 
 // The following status codes are private to this file only.
 // Users should use the prefixed version such as bt_INSERTED as defined in the
@@ -178,6 +181,10 @@ Visit https://github.com/tidwall/bgen for more information.
 #define BGEN_COPIED      9  // Tree was copied: `clone`, `copy`
 #define BGEN_NOMEM       10 // Out of memory
 #define BGEN_UNSUPPORTED 11 // Operation not supported
+
+#ifndef BGEN_SOURCE
+
+// Definitions
 
 enum BGEN_API(status) {
     BGEN_C(BGEN_NAME, _INSERTED)    = BGEN_INSERTED,
@@ -241,7 +248,7 @@ BGEN_EXTERN int BGEN_API(index_of)(BGEN_NODE **root, BGEN_ITEM key,
 BGEN_EXTERN size_t BGEN_API(count)(BGEN_NODE **root, void *udata);
 
 // Cursor Iterators
-BGEN_EXTERN void BGEN_API(iter_init)(BGEN_NODE **root, BGEN_ITER *iter,
+BGEN_EXTERN void BGEN_API(iter_init)(BGEN_NODE **root, BGEN_ITER **iter,
     void *udata);
 BGEN_EXTERN int BGEN_API(iter_status)(BGEN_ITER *iter);
 BGEN_EXTERN bool BGEN_API(iter_valid)(BGEN_ITER *iter);
@@ -314,7 +321,7 @@ BGEN_EXTERN int BGEN_API(front_mut)(BGEN_NODE **root, BGEN_ITEM *item_out,
     void *udata);
 BGEN_EXTERN int BGEN_API(back_mut)(BGEN_NODE **root, BGEN_ITEM *item_out,
     void *udata);
-BGEN_EXTERN void BGEN_API(iter_init_mut)(BGEN_NODE **root, BGEN_ITER *iter,
+BGEN_EXTERN void BGEN_API(iter_init_mut)(BGEN_NODE **root, BGEN_ITER **iter,
     void *udata);
 BGEN_EXTERN int BGEN_API(scan_mut)(BGEN_NODE **root, bool(*iter)(BGEN_ITEM item,
     void *udata), void *udata);
@@ -336,7 +343,9 @@ BGEN_EXTERN int BGEN_API(seek_at_mut)(BGEN_NODE **root, size_t index,
 BGEN_EXTERN int BGEN_API(seek_at_desc_mut)(BGEN_NODE **root, size_t index,
     bool(*iter)(BGEN_ITEM item, void *udata), void *udata);
 
-#ifndef BGEN_DEFS
+#endif // !BGEN_SOURCE
+
+#ifndef BGEN_HEADER
 
 // IMPLEMENTATION
 
@@ -3601,12 +3610,6 @@ static int BGEN_SYM(ppush0)(BGEN_PQUEUE *queue, BGEN_PITEM item, void *udata) {
         queue->items = items2;
     }
     queue->items[queue->len++] = item;
-    // static size_t nlen = 0;
-    // if (queue->len > nlen) {
-    //     printf("%zu\n", nlen);
-    //     nlen = queue->len;
-    // }
-
     size_t i = queue->len - 1;
     while (i != 0) {
         size_t parent = (i - 1) / 2;
@@ -3704,58 +3707,61 @@ BGEN_ITER {
     } u;
 };
 
-static void BGEN_SYM(iter_init)(BGEN_NODE **root, BGEN_ITER *iter, void *udata){
-    iter->root = root;
-    iter->udata = udata;
-    iter->mut = false;
-    iter->valid = false;
-    iter->kind = 0;
+static void BGEN_SYM(iter_init)(BGEN_NODE **root, BGEN_ITER **iter, void *udata)
+{
+    *iter = BGEN_SYM(malloc)(sizeof(BGEN_ITER), udata);
+    if (*iter) {
+        (*iter)->root = root;
+        (*iter)->udata = udata;
+        (*iter)->mut = false;
+        (*iter)->valid = false;
+        (*iter)->kind = 0;
+    }
 }
 
-static void BGEN_SYM(iter_init_mut)(BGEN_NODE **root, BGEN_ITER *iter, 
+static void BGEN_SYM(iter_init_mut)(BGEN_NODE **root, BGEN_ITER **iter, 
     void *udata)
 {
     BGEN_SYM(iter_init)(root, iter, udata);
-    iter->mut = 1;
+    if (*iter) {
+        (*iter)->mut = 1;
+    }
 }
 
 static void BGEN_SYM(iter_reset)(BGEN_ITER *iter, int kind) {
     iter->valid = true;
     iter->status = 0;
 #ifdef BGEN_SPATIAL
-    // printf("A\n");
     if (iter->kind == BGEN_NEARBY && kind != BGEN_NEARBY) {
-        // printf("B\n");
         // switching from NEARBY to SCAN
         BGEN_SYM(pclear)(&iter->u.n.queue, iter->udata);
     } else if (iter->kind != BGEN_NEARBY && kind == BGEN_NEARBY) {
-        // printf("C\n");
         // switching from SCAN to NEARBY
         BGEN_SYM(pqueue_init)(&iter->u.n.queue);
     }
-    // printf("D\n");
 #endif
     iter->u.s.nstack = 0;
     iter->kind = kind;
 }
 
 static void BGEN_SYM(iter_release)(BGEN_ITER *iter) {
-    (void)iter;
+    if (iter) {
 #ifdef BGEN_SPATIAL
-    if (iter->kind == BGEN_NEARBY) {
-        BGEN_SYM(pclear)(&iter->u.n.queue, iter->udata);
-    }
+        if (iter->kind == BGEN_NEARBY) {
+            BGEN_SYM(pclear)(&iter->u.n.queue, iter->udata);
+        }
 #endif
+        BGEN_SYM(free)(iter, iter->udata);
+    }
 }
 
 static bool BGEN_SYM(iter_valid)(BGEN_ITER *iter) {
-    return iter->valid;
+    return iter && iter->valid;
 }
 
 static int BGEN_SYM(iter_status)(BGEN_ITER *iter) {
-    return iter->status;
+    return !iter ? BGEN_NOMEM : iter->status;
 }
-
 
 #ifdef BGEN_SPATIAL
 static bool BGEN_SYM(iter_skip_item)(BGEN_ITER *iter, BGEN_SNODE *snode) {
@@ -3953,6 +3959,9 @@ static void BGEN_SYM(iter_next)(BGEN_ITER *iter) {
 
 // Moves iterator to first item and resets the status
 static void BGEN_SYM(iter_scan)(BGEN_ITER *iter) {
+    if (!iter) {
+        return;
+    }
     BGEN_SYM(iter_reset)(iter, BGEN_SCAN);
     if (!*iter->root) {
         iter->valid = false;
@@ -3980,6 +3989,9 @@ static void BGEN_SYM(iter_scan)(BGEN_ITER *iter) {
 
 // Moves iterator to last item and resets the status
 static void BGEN_SYM(iter_scan_desc)(BGEN_ITER *iter) {
+    if (!iter) {
+        return;
+    }
     BGEN_SYM(iter_reset)(iter, BGEN_SCANDESC);
     if (!*iter->root) {
         iter->valid = false;
@@ -4045,6 +4057,9 @@ static bool BGEN_SYM(iter_intersects_first)(BGEN_ITER *iter, BGEN_NODE *node) {
 #endif
 
 static void BGEN_SYM(iter_seek)(BGEN_ITER *iter, BGEN_ITEM key) {
+    if (!iter) {
+        return;
+    }
 #ifdef BGEN_NOORDER
     (void)iter, (void)key;
     iter->valid = false;
@@ -4085,8 +4100,10 @@ static void BGEN_SYM(iter_seek)(BGEN_ITER *iter, BGEN_ITEM key) {
 #endif
 }
 
-
 static void BGEN_SYM(iter_seek_at)(BGEN_ITER *iter, size_t index) {
+    if (!iter) {
+        return;
+    }
     BGEN_SYM(iter_reset)(iter, BGEN_SCAN);
     if (!*iter->root) {
         iter->valid = false;
@@ -4134,6 +4151,9 @@ static void BGEN_SYM(iter_seek_at)(BGEN_ITER *iter, size_t index) {
 }
 
 static void BGEN_SYM(iter_seek_at_desc)(BGEN_ITER *iter, size_t index) {
+    if (!iter) {
+        return;
+    }
     BGEN_SYM(iter_reset)(iter, BGEN_SCANDESC);
     if (!*iter->root) {
         iter->valid = false;
@@ -4181,7 +4201,10 @@ static void BGEN_SYM(iter_seek_at_desc)(BGEN_ITER *iter, size_t index) {
 static void BGEN_SYM(iter_intersects)(BGEN_ITER *iter, BGEN_RTYPE min[], 
     BGEN_RTYPE max[])
 {
-    BGEN_SYM(iter_reset)(iter, BGEN_INTERSECTS);
+    if (!iter) {
+        return;
+    }
+BGEN_SYM(iter_reset)(iter, BGEN_INTERSECTS);
 #ifndef BGEN_SPATIAL
     (void)iter, (void)min, (void)max;
     iter->valid = false;
@@ -4208,6 +4231,9 @@ static void BGEN_SYM(iter_nearby)(BGEN_ITER *iter, void *target,
     BGEN_RTYPE(*dist)(BGEN_RTYPE min[BGEN_DIMS], BGEN_RTYPE max[BGEN_DIMS],
     void *target, void *udata))
 {
+    if (!iter) {
+        return;
+    }
     BGEN_SYM(iter_reset)(iter, BGEN_NEARBY);
 #ifndef BGEN_SPATIAL
     (void)iter, (void)target, (void)dist;
@@ -4253,6 +4279,9 @@ static void BGEN_SYM(iter_item)(BGEN_ITER *iter, BGEN_ITEM *item) {
 }
 
 static void BGEN_SYM(iter_seek_desc)(BGEN_ITER *iter, BGEN_ITEM key) {
+    if (!iter) {
+        return;
+    }
 #ifdef BGEN_NOORDER
     (void)iter, (void)key;
     iter->valid = false;
@@ -4625,7 +4654,7 @@ static inline void BGEN_SYM(all_sym_calls)(void) {
     (void)BGEN_SYM(intersects_mut);
     (void)BGEN_SYM(nearby);
     (void)BGEN_SYM(nearby_mut);
-    (void)BGEN_API(seek_at_mut);
+    (void)BGEN_SYM(seek_at_mut);
     (void)BGEN_SYM(seek_at_desc_mut);
     (void)BGEN_SYM(rect);
     (void)BGEN_SYM(scan_rects);
@@ -4887,11 +4916,11 @@ bool BGEN_API(less)(BGEN_ITEM a, BGEN_ITEM b, void *udata) {
     return BGEN_SYM(less)(a, b, udata);
 }
 
-void BGEN_API(iter_init)(BGEN_NODE **root, BGEN_ITER *iter, void *udata) {
+void BGEN_API(iter_init)(BGEN_NODE **root, BGEN_ITER **iter, void *udata) {
     BGEN_SYM(iter_init)(root, iter, udata);
 }
 
-void BGEN_API(iter_init_mut)(BGEN_NODE **root, BGEN_ITER *iter, void *udata) {
+void BGEN_API(iter_init_mut)(BGEN_NODE **root, BGEN_ITER **iter, void *udata) {
     BGEN_SYM(iter_init_mut)(root, iter, udata);
 }
 
@@ -5061,7 +5090,7 @@ void BGEN_API(rect)(BGEN_NODE **root, BGEN_RTYPE min[BGEN_DIMS],
     BGEN_SYM(rect)(root, min, max, udata);
 }
 
-#endif // BGEN_DEFS
+#endif // BGEN_HEADER
 
 // undefine everything
 // use `gcc -dM -E <source>` to help find leftover BGEN_* defines
@@ -5125,7 +5154,7 @@ void BGEN_API(rect)(BGEN_NODE **root, BGEN_RTYPE min[BGEN_DIMS],
 #undef BGEN_FANOUTUSED
 #undef BGEN_POPMAX
 #undef BGEN_VALUE
-#undef BGEN_DEFS
+#undef BGEN_HEADER
 #undef BGEN_NOORDER
 #undef BGEN_RTYPE
 #undef BGEN_SNODE
@@ -5142,3 +5171,4 @@ void BGEN_API(rect)(BGEN_NODE **root, BGEN_RTYPE min[BGEN_DIMS],
 #undef BGEN_FOUND
 #undef BGEN_INSAT
 #undef BGEN_MAYBELESSEQUAL
+#undef BGEN_SOURCE

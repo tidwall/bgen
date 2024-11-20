@@ -454,9 +454,9 @@ void test_various(void) {
     // assert(ret == kv_FOUND);
     // for (int i = 0; i < nkeys; i++) {
     //     val = -1;
-    //     kv_iter_item(&iter, &val);
+    //     kv_iter_item(iter, &val);
     //     assert(val == keys[i]);
-    //     ret = kv_iter_next(&iter);
+    //     ret = kv_iter_next(iter);
     //     if (i == nkeys-1) {
     //         assert(ret == kv_NOTFOUND);
     //     } else {
@@ -470,7 +470,7 @@ void test_various(void) {
     // assert(ret == kv_FOUND);
     // for (int i = nkeys-1; i >= 0; i--) {
     //     val = -1;
-    //     kv_iter_item(&iter, &val);
+    //     kv_iter_item(iter, &val);
     //     assert(val == keys[i]);
     //     ret = kv_iter_prev(&iter);
     //     if (i == 0) {
@@ -1343,15 +1343,17 @@ void test_failures(void) {
                 kv_clear(&tree2, 0);
                 assert(kv_clone(&tree, &tree2, 0) == kv_COPIED);
                 copysum = freesum = 0;
-                struct kv_iter iter;
+                struct kv_iter *iter;
                 kv_iter_init_mut(&tree, &iter, 0);
-                kv_iter_scan(&iter);
-                if (kv_iter_status(&iter) == kv_NOMEM) {
+                kv_iter_scan(iter);
+                if (kv_iter_status(iter) == kv_NOMEM) {
+                    kv_iter_release(iter);
                     continue;
                 }
-                while (kv_iter_valid(&iter)) {
-                    kv_iter_next(&iter);
+                while (kv_iter_valid(iter)) {
+                    kv_iter_next(iter);
                 }
+                kv_iter_release(iter);
                 j++;
             }
         }
@@ -1377,19 +1379,22 @@ void test_failures(void) {
             j = k;
             while (j < N) {
                 copysum = freesum = 0;
-                struct kv_iter iter;
+                struct kv_iter *iter;
                 kv_iter_init_mut(&tree, &iter, 0);
-                kv_iter_scan_desc(&iter);
-                if (kv_iter_status(&iter) == kv_NOMEM) {
+                kv_iter_scan_desc(iter);
+                if (kv_iter_status(iter) == kv_NOMEM) {
+                    kv_iter_release(iter);
                     continue;
                 }
-                kv_iter_next(&iter);
-                if (kv_iter_status(&iter) == kv_NOMEM) {
+                kv_iter_next(iter);
+                if (kv_iter_status(iter) == kv_NOMEM) {
+                    kv_iter_release(iter);
                     continue;
                 }
-                while (kv_iter_valid(&iter)) {
-                    kv_iter_next(&iter);
+                while (kv_iter_valid(iter)) {
+                    kv_iter_next(iter);
                 }
+                kv_iter_release(iter);
                 j++;
             }
         }
@@ -1415,19 +1420,22 @@ void test_failures(void) {
             j = k;
             while (j < N) {
                 copysum = freesum = 0;
-                struct kv_iter iter;
+                struct kv_iter *iter;
                 kv_iter_init_mut(&tree, &iter, 0);
-                kv_iter_seek(&iter, j);
-                if (kv_iter_status(&iter) == kv_NOMEM) {
+                kv_iter_seek(iter, j);
+                if (kv_iter_status(iter) == kv_NOMEM) {
+                    kv_iter_release(iter);
                     continue;
                 }
-                kv_iter_next(&iter);
-                if (kv_iter_status(&iter) == kv_NOMEM) {
+                kv_iter_next(iter);
+                if (kv_iter_status(iter) == kv_NOMEM) {
+                    kv_iter_release(iter);
                     continue;
                 }
-                while (kv_iter_valid(&iter)) {
-                    kv_iter_next(&iter);
+                while (kv_iter_valid(iter)) {
+                    kv_iter_next(iter);
                 }
+                kv_iter_release(iter);
                 j++;
             }
         }
@@ -1455,22 +1463,26 @@ void test_failures(void) {
                 kv_clear(&tree2, 0);
                 assert(kv_clone(&tree, &tree2, 0) == kv_COPIED);
                 copysum = freesum = 0;
-                struct kv_iter iter;
+                struct kv_iter *iter;
                 kv_iter_init_mut(&tree, &iter, 0);
-                kv_iter_seek_desc(&iter, (l++)%kv_count(&tree, 0));
-                if (kv_iter_status(&iter) == kv_NOMEM) {
+                kv_iter_seek_desc(iter, (l++)%kv_count(&tree, 0));
+                if (kv_iter_status(iter) == kv_NOMEM) {
+                    kv_iter_release(iter);
                     continue;
                 }
-                kv_iter_next(&iter);
-                if (kv_iter_status(&iter) == kv_NOMEM) {
+                kv_iter_next(iter);
+                if (kv_iter_status(iter) == kv_NOMEM) {
+                    kv_iter_release(iter);
                     continue;
                 }
-                while (kv_iter_valid(&iter)) {
-                    kv_iter_next(&iter);
+                while (kv_iter_valid(iter)) {
+                    kv_iter_next(iter);
                 }
-                if (kv_iter_status(&iter) == kv_NOMEM) {
+                if (kv_iter_status(iter) == kv_NOMEM) {
+                    kv_iter_release(iter);
                     continue;
                 }
+                kv_iter_release(iter);
                 j++;
             }
         }
@@ -1496,19 +1508,22 @@ void test_failures(void) {
             j = k;
             while (j < N) {
                 copysum = freesum = 0;
-                struct kv_iter iter;
+                struct kv_iter *iter;
                 kv_iter_init_mut(&tree, &iter, 0);
-                kv_iter_seek_at(&iter, j);
-                if (kv_iter_status(&iter) == kv_NOMEM) {
+                kv_iter_seek_at(iter, j);
+                if (kv_iter_status(iter) == kv_NOMEM) {
+                    kv_iter_release(iter);
                     continue;
                 }
-                kv_iter_next(&iter);
-                if (kv_iter_status(&iter) == kv_NOMEM) {
+                kv_iter_next(iter);
+                if (kv_iter_status(iter) == kv_NOMEM) {
+                    kv_iter_release(iter);
                     continue;
                 }
-                while (kv_iter_valid(&iter)) {
-                    kv_iter_next(&iter);
+                while (kv_iter_valid(iter)) {
+                    kv_iter_next(iter);
                 }
+                kv_iter_release(iter);
                 j++;
             }
         }
@@ -1534,19 +1549,22 @@ void test_failures(void) {
             j = k;
             while (j < N) {
                 copysum = freesum = 0;
-                struct kv_iter iter;
+                struct kv_iter *iter;
                 kv_iter_init_mut(&tree, &iter, 0);
-                kv_iter_seek_at_desc(&iter, j);
-                if (kv_iter_status(&iter) == kv_NOMEM) {
+                kv_iter_seek_at_desc(iter, j);
+                if (kv_iter_status(iter) == kv_NOMEM) {
+                    kv_iter_release(iter);
                     continue;
                 }
-                kv_iter_next(&iter);
-                if (kv_iter_status(&iter) == kv_NOMEM) {
+                kv_iter_next(iter);
+                if (kv_iter_status(iter) == kv_NOMEM) {
+                    kv_iter_release(iter);
                     continue;
                 }
-                while (kv_iter_valid(&iter)) {
-                    kv_iter_next(&iter);
+                while (kv_iter_valid(iter)) {
+                    kv_iter_next(iter);
                 }
+                kv_iter_release(iter);
                 j++;
             }
         }
@@ -1583,19 +1601,22 @@ void test_failures(void) {
             j = k;
             while (j < N) {
                 copysum = freesum = 0;
-                struct kv_iter iter;
+                struct kv_iter *iter;
                 kv_iter_init_mut(&tree, &iter, 0);
-                kv_iter_intersects(&iter, min, max);
-                if (kv_iter_status(&iter) == kv_NOMEM) {
+                kv_iter_intersects(iter, min, max);
+                if (kv_iter_status(iter) == kv_NOMEM) {
+                    kv_iter_release(iter);
                     continue;
                 }
-                kv_iter_next(&iter);
-                if (kv_iter_status(&iter) == kv_NOMEM) {
+                kv_iter_next(iter);
+                if (kv_iter_status(iter) == kv_NOMEM) {
+                    kv_iter_release(iter);
                     continue;
                 }
-                while (kv_iter_valid(&iter)) {
-                    kv_iter_next(&iter);
+                while (kv_iter_valid(iter)) {
+                    kv_iter_next(iter);
                 }
+                kv_iter_release(iter);
                 j++;
             }
         }
@@ -1635,22 +1656,22 @@ void test_failures(void) {
             assert(kv_clone(&tree, &tree2, 0) == kv_COPIED);
             while (j < N) {
                 copysum = freesum = 0;
-                struct kv_iter iter;
+                struct kv_iter *iter;
                 kv_iter_init_mut(&tree, &iter, 0);
-                kv_iter_nearby(&iter, 0, dist_noop);
-                if (kv_iter_status(&iter) == kv_NOMEM) {
-                    kv_iter_release(&iter);
+                kv_iter_nearby(iter, 0, dist_noop);
+                if (kv_iter_status(iter) == kv_NOMEM) {
+                    kv_iter_release(iter);
                     continue;
                 }
-                kv_iter_next(&iter);
-                if (kv_iter_status(&iter) == kv_NOMEM) {
-                    kv_iter_release(&iter);
+                kv_iter_next(iter);
+                if (kv_iter_status(iter) == kv_NOMEM) {
+                    kv_iter_release(iter);
                     continue;
                 }
-                while (kv_iter_valid(&iter)) {
-                    kv_iter_next(&iter);
+                while (kv_iter_valid(iter)) {
+                    kv_iter_next(iter);
                 }
-                kv_iter_release(&iter);
+                kv_iter_release(iter);
                 j++;
             }
         }
@@ -1774,7 +1795,7 @@ if (doit) {
     // printf("> %d %d\n", a, b);
 }
 
-    void(*iter_init)(struct kv **root, struct kv_iter *iter, void *udata);
+    void(*iter_init)(struct kv **root, struct kv_iter **iter, void *udata);
     int(*intersects)(struct kv **root, double min[], double max[], 
         bool(*iter)(int item, void *udata), void *udata);
     if (mut) {
@@ -1823,19 +1844,20 @@ if (doit) {
     slow_intersects(min, max, &ctx1);
     intersects(&tree2, min, max, iiter, &ctx2);
 
-    struct kv_iter iter;
+    struct kv_iter *iter;
     iter_init(&tree2, &iter, 0);
-    kv_iter_intersects(&iter, min, max);
+    kv_iter_intersects(iter, min, max);
 #ifdef SPATIAL
-    for (; kv_iter_valid(&iter); kv_iter_next(&iter)) {
-        kv_iter_item(&iter, &val);
+    for (; kv_iter_valid(iter); kv_iter_next(iter)) {
+        kv_iter_item(iter, &val);
         if (!iiter(val, &ctx3)) {
             break;
         }
     }
 #else
-    assert(!kv_iter_valid(&iter));
+    assert(!kv_iter_valid(iter));
 #endif
+    kv_iter_release(iter);
     if (!(ctx3.count == ctx2.count && ctx2.count == ctx1.count && 
         ctx1.count == count))
     {
@@ -1855,7 +1877,7 @@ if (doit) {
 
 
 void test_intersects_opt(bool mut) {
-    void(*iter_init)(struct kv **root, struct kv_iter *iter, void *udata);
+    void(*iter_init)(struct kv **root, struct kv_iter **iter, void *udata);
     // int(*intersects)(struct kv **root, double min[], double max[], void *udata);
     if (mut) {
         iter_init = kv_iter_init_mut;
@@ -1864,13 +1886,18 @@ void test_intersects_opt(bool mut) {
     }
 
 
+
+
+
     // test iter_intersects on an empty tree
-    struct kv_iter iter;
-    iter_init(&tree, &iter, 0);
+    struct kv_iter *iter;
     double min[DIMS] = { 0 };
     double max[DIMS] = { 0 };
-    kv_iter_intersects(&iter, min, max);
-    assert(!kv_iter_valid(&iter));
+    kv_iter_intersects(0, min, max); // should not fail
+    iter_init(&tree, &iter, 0);
+    kv_iter_intersects(iter, min, max);
+    assert(!kv_iter_valid(iter));
+    kv_iter_release(iter);
 
     tree_fill();
 
@@ -1887,18 +1914,19 @@ void test_intersects_opt(bool mut) {
 
     // try intersects to find each item
     sort(keys, nkeys);
-    iter_init(&tree2, &iter, 0);
     for (int i = 0; i < nkeys; i++) {
         bool found = false;
         item_rect(keys[i], min, max);
-        kv_iter_intersects(&iter, min, max);
-        while (kv_iter_valid(&iter)) {
-            kv_iter_item(&iter, &val);
+        iter_init(&tree2, &iter, 0);
+        kv_iter_intersects(iter, min, max);
+        while (kv_iter_valid(iter)) {
+            kv_iter_item(iter, &val);
             if (val == keys[i]) {
                 found = true;
             }
-            kv_iter_next(&iter);
+            kv_iter_next(iter);
         }
+        kv_iter_release(iter);
 #ifdef SPATIAL
         assert(found);
 #else
@@ -2031,9 +2059,9 @@ void slow_seek_at_desc(size_t index, bool(*iter)(int item, void *udata), void *u
 
 void test_scan_opt(bool mut) {
     struct siter_ctx ctx;
-    struct kv_iter iter;
+    struct kv_iter *iter;
 
-    void(*iter_init)(struct kv **root, struct kv_iter *iter, void *udata);
+    void(*iter_init)(struct kv **root, struct kv_iter **iter, void *udata);
     int(*scan)(struct kv **root, bool(*iter)(int item, void *udata), void *udata);
     if (mut) {
         iter_init = kv_iter_init_mut;
@@ -2044,8 +2072,9 @@ void test_scan_opt(bool mut) {
     }
 
     iter_init(&tree, &iter, 0);
-    kv_iter_scan(&iter);
-    assert(!kv_iter_valid(&iter));
+    kv_iter_scan(iter);
+    assert(!kv_iter_valid(iter));
+    kv_iter_release(iter);
 
     tree_fill();
 
@@ -2067,15 +2096,15 @@ void test_scan_opt(bool mut) {
 
     ctx = (struct siter_ctx){ .limit = 9999999 };
     iter_init(&tree2, &iter, 0);
-    kv_iter_scan(&iter);
-    while (kv_iter_valid(&iter)) {
-        kv_iter_item(&iter, &val);
+    kv_iter_scan(iter);
+    while (kv_iter_valid(iter)) {
+        kv_iter_item(iter, &val);
         if (!siter(val, &ctx)) {
             break;
         }
-        kv_iter_next(&iter);
+        kv_iter_next(iter);
     }
-    kv_iter_release(&iter); // not really needed for scan
+    kv_iter_release(iter); // not really needed for scan
     assert(ctx.sum == asum);
 
     for (int i = 0; i < 150; i++) {
@@ -2091,14 +2120,15 @@ void test_scan_opt(bool mut) {
 
         ctx = (struct siter_ctx){ .limit = i };
         iter_init(&tree2, &iter, 0);
-        kv_iter_scan(&iter);
-        while (kv_iter_valid(&iter)) {
-            kv_iter_item(&iter, &val);
+        kv_iter_scan(iter);
+        while (kv_iter_valid(iter)) {
+            kv_iter_item(iter, &val);
             if (!siter(val, &ctx)) {
                 break;
             }
-            kv_iter_next(&iter);
+            kv_iter_next(iter);
         }
+        kv_iter_release(iter);
         assert(ctx.count == i);
         assert(ctx.sum == bsum);
     }
@@ -2119,9 +2149,9 @@ void test_scan(void) {
 void test_scan_desc_opt(bool mut) {
     
     struct siter_ctx ctx;
-    struct kv_iter iter;
+    struct kv_iter *iter;
 
-    void(*iter_init)(struct kv **root, struct kv_iter *iter, void *udata);
+    void(*iter_init)(struct kv **root, struct kv_iter **iter, void *udata);
     int(*scan_desc)(struct kv **root, bool(*iter)(int item, void *udata), void *udata);
     if (mut) {
         iter_init = kv_iter_init_mut;
@@ -2132,9 +2162,9 @@ void test_scan_desc_opt(bool mut) {
     }
 
     iter_init(&tree, &iter, 0);
-    kv_iter_scan(&iter);
-    assert(!kv_iter_valid(&iter));
-
+    kv_iter_scan(iter);
+    assert(!kv_iter_valid(iter));
+    kv_iter_release(iter);
     tree_fill();
 
     ctx = (struct siter_ctx){ 0 };
@@ -2155,14 +2185,15 @@ void test_scan_desc_opt(bool mut) {
 
     ctx = (struct siter_ctx){ .limit = 9999999 };
     iter_init(&tree2, &iter, 0);
-    kv_iter_scan_desc(&iter);
-    while (kv_iter_valid(&iter)) {
-        kv_iter_item(&iter, &val);
+    kv_iter_scan_desc(iter);
+    while (kv_iter_valid(iter)) {
+        kv_iter_item(iter, &val);
         if (!siter(val, &ctx)) {
             break;
         }
-        kv_iter_next(&iter);
+        kv_iter_next(iter);
     }
+    kv_iter_release(iter);
     assert(ctx.sum == asum);
 
     for (int i = 0; i < 150; i++) {
@@ -2178,14 +2209,15 @@ void test_scan_desc_opt(bool mut) {
 
         ctx = (struct siter_ctx){ .limit = i };
         iter_init(&tree2, &iter, 0);
-        kv_iter_scan_desc(&iter);
-        while (kv_iter_valid(&iter)) {
-            kv_iter_item(&iter, &val);
+        kv_iter_scan_desc(iter);
+        while (kv_iter_valid(iter)) {
+            kv_iter_item(iter, &val);
             if (!siter(val, &ctx)) {
                 break;
             }
-            kv_iter_next(&iter);
+            kv_iter_next(iter);
         }
+        kv_iter_release(iter);
         assert(ctx.count == i);
         assert(ctx.sum == bsum);
     }
@@ -2203,9 +2235,9 @@ void test_scan_desc(void) {
 
 void test_seek_opt(bool mut) {
     struct siter_ctx ctx;
-    struct kv_iter iter;
+    struct kv_iter *iter;
 
-    void(*iter_init)(struct kv **root, struct kv_iter *iter, void *udata);
+    void(*iter_init)(struct kv **root, struct kv_iter **iter, void *udata);
     int(*seek)(struct kv **root, int pivot, bool(*iter)(int item, void *udata), void *udata);
     if (mut) {
         iter_init = kv_iter_init_mut;
@@ -2216,8 +2248,9 @@ void test_seek_opt(bool mut) {
     }
 
     iter_init(&tree, &iter, 0);
-    kv_iter_seek(&iter, 0);
-    assert(!kv_iter_valid(&iter));
+    kv_iter_seek(iter, 0);
+    assert(!kv_iter_valid(iter));
+    kv_iter_release(iter);
 
     tree_fill();
 
@@ -2255,14 +2288,15 @@ void test_seek_opt(bool mut) {
 
             ctx = (struct siter_ctx){ .limit = limit };
             iter_init(&tree2, &iter, 0);
-            kv_iter_seek(&iter, i);
-            while (kv_iter_valid(&iter)) {
-                kv_iter_item(&iter, &val);
+            kv_iter_seek(iter, i);
+            while (kv_iter_valid(iter)) {
+                kv_iter_item(iter, &val);
                 if (!siter(val, &ctx)) {
                     break;
                 }
-                kv_iter_next(&iter);
+                kv_iter_next(iter);
             }
+            kv_iter_release(iter);
             assert(ctx.count == count);
             assert(ctx.sum == bsum);
         }
@@ -2280,7 +2314,7 @@ void test_seek(void) {
 }
 
 void test_seek_desc_opt(bool mut) {
-    void(*iter_init)(struct kv **root, struct kv_iter *iter, void *udata);
+    void(*iter_init)(struct kv **root, struct kv_iter **iter, void *udata);
     int(*seek_desc)(struct kv **root, int pivot, bool(*iter)(int item, void *udata), void *udata);
     if (mut) {
         iter_init = kv_iter_init_mut;
@@ -2291,12 +2325,13 @@ void test_seek_desc_opt(bool mut) {
     }
 
     struct siter_ctx ctx;
-    struct kv_iter iter;
+    struct kv_iter *iter;
 
     // test iter with empty trees
     iter_init(&tree, &iter, 0);
-    kv_iter_seek_desc(&iter, 99999999);
-    assert(!kv_iter_valid(&iter));
+    kv_iter_seek_desc(iter, 99999999);
+    assert(!kv_iter_valid(iter));
+    kv_iter_release(iter);
 
     tree_fill();
 
@@ -2336,14 +2371,15 @@ void test_seek_desc_opt(bool mut) {
 
             ctx = (struct siter_ctx){ .limit = limit };
             iter_init(&tree2, &iter, 0);
-            kv_iter_seek_desc(&iter, i);
-            while (kv_iter_valid(&iter)) {
-                kv_iter_item(&iter, &val);
+            kv_iter_seek_desc(iter, i);
+            while (kv_iter_valid(iter)) {
+                kv_iter_item(iter, &val);
                 if (!siter(val, &ctx)) {
                     break;
                 }
-                kv_iter_next(&iter);
+                kv_iter_next(iter);
             }
+            kv_iter_release(iter);
             assert(ctx.count == count);
             assert(ctx.sum == bsum);
         }
@@ -2363,9 +2399,9 @@ void test_seek_desc(void) {
 
 void test_seek_at_opt(bool mut) {
     struct siter_ctx ctx;
-    struct kv_iter iter;
+    struct kv_iter *iter;
 
-    void(*iter_init)(struct kv **root, struct kv_iter *iter, void *udata);
+    void(*iter_init)(struct kv **root, struct kv_iter **iter, void *udata);
     int(*seek_at)(struct kv **root, size_t index, bool(*iter)(int item, void *udata), void *udata);
     if (mut) {
         iter_init = kv_iter_init_mut;
@@ -2376,15 +2412,16 @@ void test_seek_at_opt(bool mut) {
     }
 
     iter_init(&tree, &iter, 0);
-    kv_iter_seek_at(&iter, 0);
-    assert(!kv_iter_valid(&iter));
+    kv_iter_seek_at(iter, 0);
+    assert(!kv_iter_valid(iter));
+    kv_iter_release(iter);
 
     tree_fill();
 
     iter_init(&tree, &iter, 0);
-    kv_iter_seek_at(&iter, 999999);
-    assert(!kv_iter_valid(&iter));
-
+    kv_iter_seek_at(iter, 999999);
+    assert(!kv_iter_valid(iter));
+    kv_iter_release(iter);
 
     struct kv *tree2 = tree;
     assert(kv_clone(&tree, &tree2, 0) == kv_COPIED);
@@ -2422,14 +2459,15 @@ void test_seek_at_opt(bool mut) {
             // printf("iter_seek_at %d:%d\n", i, limit);
             ctx = (struct siter_ctx){ .limit = limit };
             iter_init(&tree2, &iter, 0);
-            kv_iter_seek_at(&iter, i);
-            while (kv_iter_valid(&iter)) {
-                kv_iter_item(&iter, &val);
+            kv_iter_seek_at(iter, i);
+            while (kv_iter_valid(iter)) {
+                kv_iter_item(iter, &val);
                 if (!siter(val, &ctx)) {
                     break;
                 }
-                kv_iter_next(&iter);
+                kv_iter_next(iter);
             }
+            kv_iter_release(iter);
             assert(ctx.count == count);
             assert(ctx.sum == bsum);
         }
@@ -2448,9 +2486,9 @@ void test_seek_at(void) {
 
 void test_seek_at_desc_opt(bool mut) {
     struct siter_ctx ctx;
-    struct kv_iter iter;
+    struct kv_iter *iter;
 
-    void(*iter_init)(struct kv **root, struct kv_iter *iter, void *udata);
+    void(*iter_init)(struct kv **root, struct kv_iter **iter, void *udata);
     int(*seek_at_desc)(struct kv **root, size_t index, bool(*iter)(int item, void *udata), void *udata);
     if (mut) {
         iter_init = kv_iter_init_mut;
@@ -2461,14 +2499,16 @@ void test_seek_at_desc_opt(bool mut) {
     }
 
     iter_init(&tree, &iter, 0);
-    kv_iter_seek_at_desc(&iter, 0);
-    assert(!kv_iter_valid(&iter));
+    kv_iter_seek_at_desc(iter, 0);
+    assert(!kv_iter_valid(iter));
+    kv_iter_release(iter);
 
     tree_fill();
 
     iter_init(&tree, &iter, 0);
-    kv_iter_seek_at_desc(&iter, 999999);
-    assert(kv_iter_valid(&iter));
+    kv_iter_seek_at_desc(iter, 999999);
+    assert(kv_iter_valid(iter));
+    kv_iter_release(iter);
 
     ctx = (struct siter_ctx){ .limit = 1 };
     int ret = seek_at_desc(&tree, 999999, siter, &ctx);
@@ -2512,14 +2552,15 @@ void test_seek_at_desc_opt(bool mut) {
             // printf("iter_seek_at %d:%d\n", i, limit);
             ctx = (struct siter_ctx){ .limit = limit };
             iter_init(&tree2, &iter, 0);
-            kv_iter_seek_at_desc(&iter, i);
-            while (kv_iter_valid(&iter)) {
-                kv_iter_item(&iter, &val);
+            kv_iter_seek_at_desc(iter, i);
+            while (kv_iter_valid(iter)) {
+                kv_iter_item(iter, &val);
                 if (!siter(val, &ctx)) {
                     break;
                 }
-                kv_iter_next(&iter);
+                kv_iter_next(iter);
             }
+            kv_iter_release(iter);
             assert(ctx.count == count);
             assert(ctx.sum == bsum);
 
@@ -2594,25 +2635,25 @@ int slow_nearby(struct kv **root, void *target,
 #else
     struct nitem *items = malloc(sizeof(struct nitem) * kv_count(root, udata));
     assert(items);
-    struct kv_iter iter2;
+    struct kv_iter *iter2;
     if (mut) {
         kv_iter_init_mut(root, &iter2, udata);
     } else {
         kv_iter_init(root, &iter2, udata);
     }
-    kv_iter_scan(&iter2);
+    kv_iter_scan(iter2);
     int count = 0;
-    while (kv_iter_valid(&iter2)) {
-        kv_iter_item(&iter2, &val);
+    while (kv_iter_valid(iter2)) {
+        kv_iter_item(iter2, &val);
         double min[DIMS], max[DIMS];
         item_rect(val, min, max);
         items[count].dist = dist(min, max, target, udata);
         items[count].item = val;
         count++;
-        kv_iter_next(&iter2);
+        kv_iter_next(iter2);
     }
-    assert(kv_iter_status(&iter2) == 0);
-    kv_iter_release(&iter2);
+    assert(kv_iter_status(iter2) == 0);
+    kv_iter_release(iter2);
     qsort(items, count, sizeof(struct nitem), ncompare);
     int status = kv_FINISHED;
     for (int i = 0; i < count; i++) {
@@ -2634,10 +2675,12 @@ void test_nearby_opt(bool mut) {
         assert(kv_nearby(&tree, 0, ndist, niter, 0) == kv_FINISHED);
     }
 
-    struct kv_iter iter;
+    struct kv_iter *iter;
     kv_iter_init(&tree, &iter, 0);
-    kv_iter_nearby(&iter, 0, ndist);
-    assert(kv_iter_valid(&iter) == false);
+    kv_iter_nearby(0, 0, ndist); // should not fail
+    kv_iter_nearby(iter, 0, ndist);
+    assert(kv_iter_valid(iter) == false);
+    kv_iter_release(iter);
     
 
 #ifndef SPATIAL
@@ -2690,15 +2733,15 @@ void test_nearby_opt(bool mut) {
     } else {
         kv_iter_init(&tree3, &iter, &ctx3);
     }
-    kv_iter_nearby(&iter, point, ndist);
-    while (kv_iter_valid(&iter)) {
-        kv_iter_item(&iter, &val);
+    kv_iter_nearby(iter, point, ndist);
+    while (kv_iter_valid(iter)) {
+        kv_iter_item(iter, &val);
         if (!niter(val, &ctx3)) {
             break;
         }
-        kv_iter_next(&iter);
+        kv_iter_next(iter);
     }
-    kv_iter_release(&iter);
+    kv_iter_release(iter);
 
     assert(ctx3.count == count);
     for (int i = 0; i < count; i++) {
@@ -2730,20 +2773,20 @@ void test_nearby_opt(bool mut) {
     } else {
         kv_iter_init(&tree3, &iter, &ctx3);
     }
-    kv_iter_nearby(&iter, point, ndist);
-    while (kv_iter_valid(&iter)) {
-        kv_iter_item(&iter, &val);
+    kv_iter_nearby(iter, point, ndist);
+    while (kv_iter_valid(iter)) {
+        kv_iter_item(iter, &val);
         if (!niter(val, &ctx3)) {
             break;
         }
-        kv_iter_next(&iter);
+        kv_iter_next(iter);
     }
     // printf("============\n");
-    kv_iter_scan(&iter); // switch to the different scanner
+    kv_iter_scan(iter); // switch to the different scanner
     // printf("============\n");
 
 
-    kv_iter_release(&iter);
+    kv_iter_release(iter);
 
     assert(ctx3.count == count/2);
 
@@ -2784,12 +2827,12 @@ void check_rect(void) {
     double max[DIMS] = { 0 };
     double imin[DIMS] = { 0 };
     double imax[DIMS] = { 0 };
-    struct kv_iter iter;
+    struct kv_iter *iter;
     kv_iter_init(&tree, &iter, 0);
-    kv_iter_scan(&iter);
+    kv_iter_scan(iter);
     int i = 0;
-    while (kv_iter_valid(&iter)) {
-        kv_iter_item(&iter, &val);
+    while (kv_iter_valid(iter)) {
+        kv_iter_item(iter, &val);
         if (i == 0) {
             item_rect(val, min, max);
         } else {
@@ -2803,9 +2846,10 @@ void check_rect(void) {
                 }
             }
         }
-        kv_iter_next(&iter);
+        kv_iter_next(iter);
         i++;
     }
+    kv_iter_release(iter);
     kv_rect(&tree, imin, imax, 0);
     for (int i = 0; i < DIMS; i++) {
         assert(!(min[i] < imin[i] || min[i] > imin[i]));

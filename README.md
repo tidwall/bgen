@@ -52,24 +52,24 @@ Insert items into a simple btree that only stores ints.
 #define BGEN_NAME bt            // The namespace for the btree structure.
 #define BGEN_TYPE int           // The data type for all items in the btree
 #define BGEN_LESS return a < b; // A code fragment for comparing items
-#include "bgen.h"               // Include "bgen.h" to generate the btree
+#include "../bgen.h"            // Include "bgen.h" to generate the btree
 
 int main() {
     // Create an empty btree instance.
     struct bt *tree = 0;
 
-    // insert some items into the btree
+    // Insert some items into the btree
     bt_insert(&tree, 3, 0, 0);
     bt_insert(&tree, 8, 0, 0);
     bt_insert(&tree, 2, 0, 0);
     bt_insert(&tree, 5, 0, 0);
 
     // Print items in tree
-    struct bt_iter iter;
+    struct bt_iter *iter;
     bt_iter_init(&tree, &iter, 0);
-    for (bt_iter_scan(&iter); bt_iter_valid(&iter); bt_iter_next(&iter)) {
+    for (bt_iter_scan(iter); bt_iter_valid(iter); bt_iter_next(iter)) {
         int item;
-        bt_iter_item(&iter, &item);
+        bt_iter_item(iter, &item);
         printf("%d ", item);
     } 
     printf("\n");
@@ -78,13 +78,14 @@ int main() {
     bt_delete(&tree, 3, 0, 0);
 
     // Print again
-    for (bt_iter_scan(&iter); bt_iter_valid(&iter); bt_iter_next(&iter)) {
+    for (bt_iter_scan(iter); bt_iter_valid(iter); bt_iter_next(iter)) {
         int item;
-        bt_iter_item(&iter, &item);
+        bt_iter_item(iter, &item);
         printf("%d ", item);
     } 
     printf("\n");
 
+    bt_iter_release(iter);
     bt_clear(&tree, 0);
     return 0;
 }
@@ -115,13 +116,14 @@ struct pair {
 
 void print_map(const char *comment, struct map **map) {
     printf("%s", comment);
-    struct map_iter iter;
+    struct map_iter *iter;
     map_iter_init(map, &iter, 0);
-    for (map_iter_scan(&iter); map_iter_valid(&iter); map_iter_next(&iter)) {
+    for (map_iter_scan(iter); map_iter_valid(iter); map_iter_next(iter)) {
         struct pair pair;
-        map_iter_item(&iter, &pair);
+        map_iter_item(iter, &pair);
         printf("[%s] = %d; ", pair.key, pair.value);
     }
+    map_iter_release(iter);
     printf("\n");
 }
 
@@ -133,14 +135,14 @@ int main() {
     map_insert(&map, (struct pair){"CPU", 10}, 0, 0);
     print_map("1) Initial map:  ", &map);
 
-    // get an existing item
+    // Get an existing item
     struct pair item;
     assert(map_get(&map, (struct pair){"GPU"}, &item, 0) == map_FOUND);
     printf("2) Get item:     [%s] = %d;\n", item.key, item.value);
 
-    // update an existing item
+    // Update an existing item
     assert(map_insert(&map, (struct pair){"CPU", 25}, 0, 0) == map_REPLACED);
-    // insert a new item
+    // Insert a new item
     assert(map_insert(&map, (struct pair){"SSD", 30}, 0, 0) == map_INSERTED); 
     print_map("3) Updated map:  ", &map);
     assert(map_insert(&map, (struct pair){"UPS"}, 0, 0) == map_INSERTED); 
@@ -260,6 +262,8 @@ set using the C preprocessor.
 | BGEN_DIMS `<int>`            | Define the number of dimensions for [spatial btree](#spatial-b-tree) |
 | BGEN_ITEMRECT `<code>`       | Define a rect filling operation for [spatial btree](#spatial-b-tree) |
 | BGEN_RTYPE `<type>`          | Define a rect coordinate type [spatial btree](#spatial-b-tree) (default double) |
+| BGEN_HEADER                  | Generate header declaration only. See [Header and source](#header-and-source) |
+| BGEN_SOURCE                  | Generate source declaration only. See [Header and source](#header-and-source) |
 
 ## Namespaces
 
@@ -542,15 +546,15 @@ function. It takes a little more work to set up but is sometimes easier t
 manage the context of operation.
 
 ```c
-struct users_iter iter;
+struct users_iter *iter;
 users_iter_init(&users, &iter, 0);
-users_iter_scan(&iter);
-while (users_iter_valid(&iter)) {
-    users_iter_item(&iter, &user);
+users_iter_scan(iter);
+while (users_iter_valid(iter)) {
+    users_iter_item(iter, &user);
     printf("%s %s (age=%d)\n", user.first, user.last, user.age);
-    users_iter_next(&iter);
+    users_iter_next(iter);
 }
-users_iter_release(&iter);
+users_iter_release(iter);
 ```
 
 It's usually not safe to modify the btree while iterating. 
@@ -558,19 +562,22 @@ If you need to filter data then it's best to reset the iterator after
 each modification.
 
 ```c
-struct users_iter iter;
+struct users_iter *iter;
 users_iter_init(&users, &iter, 0);
-users_iter_scan(&iter);
-while (users_iter_valid(&iter)) {
-    users_iter_item(&iter, &user);
+users_iter_scan(iter);
+while (users_iter_valid(iter)) {
+    users_iter_item(iter, &user);
     if (user.age >= 30 && user.age < 40) {
         users_delete(&users, user, 0, 0);
-        users_iter_seek(&iter, user);
+        users_iter_seek(iter, user);
         continue;
     } 
-    users_iter_next(&iter);
+    users_iter_next(iter);
 }
+users_iter_release(iter);
 ```
+
+Make sure to call `bt_iter_release()` when you are done iterating;
 
 ## Status codes 
 
@@ -699,6 +706,48 @@ efficiently searching intersecting rectangles and the performing the nearest
 neighbors operation ([kNN](https://en.wikipedia.org/wiki/K-nearest_neighbors_algorithm)).
 
 See the [spatial.c](examples/spatial.c) example from the [examples directory](examples).
+
+## Header and source
+
+By default, bgen generates all the code as a static unit for the current source
+file that includes "bgen.h".
+
+This is great if all you need to access the btree from that one file.
+But if you want other c source files to access those same btree functions too
+then you'll use the `BGEN_HEADER` and `BGEN_SOURCE` options.
+
+For example, here we'll create a "users.h" and "users.c" where one generates
+only the header declarations and the other generates the code.
+
+```c
+// users.h
+#ifndef USERS_H
+#define USERS_H
+
+struct user {
+    int id;
+    char *name;
+};
+
+#define BGEN_NAME users
+#define BGEN_TYPE struct user
+#define BGEN_HEADER
+#include "../deps/bgen.h"
+
+#endif
+```
+
+```c
+// users.c
+#include "users.h"
+
+#define BGEN_NAME users
+#define BGEN_TYPE struct user
+#define BGEN_LESS return a.id < b.id;
+#define BGEN_SOURCE
+#include "../deps/bgen.h"
+```
+
 
 ## Performance
 
