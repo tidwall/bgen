@@ -349,6 +349,7 @@ BGEN_EXTERN int BGEN_API(seek_at_desc_mut)(BGEN_NODE **root, size_t index,
 
 // IMPLEMENTATION
 
+BGEN_NOINLINE
 static void *BGEN_SYM(malloc)(size_t size, void *udata) {
     (void)size, (void)udata;
     BGEN_MALLOC
