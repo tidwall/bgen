@@ -351,6 +351,8 @@ void test_various(void) {
     assert(val == -1);
     assert(kv_get_mut(&tree, 0, &val, 0) == kv_NOTFOUND);
     assert(val == -1);
+    assert(kv_get_mut_ref(&tree, 0, 0, 0) == kv_NOTFOUND);
+    assert(val == -1);
     assert(kv_front(&tree, &val, 0) == kv_NOTFOUND);
     assert(val == -1);
     assert(kv_front_mut(&tree, &val, 0) == kv_NOTFOUND);

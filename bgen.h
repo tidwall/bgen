@@ -343,6 +343,11 @@ BGEN_EXTERN int BGEN_API(seek_at_mut)(BGEN_NODE **root, size_t index,
 BGEN_EXTERN int BGEN_API(seek_at_desc_mut)(BGEN_NODE **root, size_t index,
     bool(*iter)(BGEN_ITEM item, void *udata), void *udata);
 
+// Access direct mutable references... use with care.
+BGEN_EXTERN int BGEN_API(get_mut_ref)(BGEN_NODE **root, BGEN_ITEM key,
+    BGEN_ITEM **item, void *udata);
+
+
 #endif // !BGEN_SOURCE
 
 #ifndef BGEN_HEADER
@@ -1928,13 +1933,11 @@ static int BGEN_SYM(get)(BGEN_NODE **root, BGEN_ITEM key, BGEN_ITEM *item_out,
 #endif
 }
 
-// Work like (get) but, if needed, performs copy-on-write operations.
-// returns FOUND or NOTFOUND or NOMEM
-static int BGEN_SYM(get_mut)(BGEN_NODE **root, BGEN_ITEM key, 
-    BGEN_ITEM *item_out, void *udata)
+static int BGEN_SYM(get_mut_ref)(BGEN_NODE **root, BGEN_ITEM key,
+    BGEN_ITEM **item, void *udata)
 {
 #ifdef BGEN_NOORDER
-    (void)root, (void)key, (void)item_out, (void)udata;
+    (void)root, (void)key, (void)item, (void)udata;
     return BGEN_UNSUPPORTED;
 #else
     if (!*root) {
@@ -1950,8 +1953,8 @@ static int BGEN_SYM(get_mut)(BGEN_NODE **root, BGEN_ITEM key,
         int i, found;
         i = BGEN_SYM(search)(node, key, udata, &found, depth);
         if (found) {
-            if (item_out) {
-                *item_out = node->items[i];
+            if (item) {
+                *item = &node->items[i];
             }
             return BGEN_FOUND;
         } else if (node->isleaf) {
@@ -1964,6 +1967,20 @@ static int BGEN_SYM(get_mut)(BGEN_NODE **root, BGEN_ITEM key,
         depth++;
     }
 #endif
+}
+
+
+// Work like (get) but, if needed, performs copy-on-write operations.
+// returns FOUND or NOTFOUND or NOMEM
+static int BGEN_SYM(get_mut)(BGEN_NODE **root, BGEN_ITEM key, 
+    BGEN_ITEM *item_out, void *udata)
+{
+    BGEN_ITEM *item;
+    int ret = BGEN_SYM(get_mut_ref)(root, key, &item, udata);
+    if (ret == BGEN_FOUND && item_out) {
+        *item_out = *item;
+    }
+    return ret;
 }
 
 // returns true if key is found
@@ -4600,6 +4617,7 @@ static inline void BGEN_SYM(all_sym_calls)(void) {
     (void)BGEN_SYM(feat_dims);
     (void)BGEN_SYM(print);
     (void)BGEN_SYM(get_mut);
+    (void)BGEN_SYM(get_mut_ref);
     (void)BGEN_SYM(get_at_mut);
     (void)BGEN_SYM(insert);
     (void)BGEN_SYM(get);
@@ -4678,6 +4696,7 @@ static inline void BGEN_SYM(all_api_calls)(void) {
     (void)BGEN_API(feat_atomics);
     (void)BGEN_API(feat_dims);
     (void)BGEN_API(get_mut);
+    (void)BGEN_API(get_mut_ref);
     (void)BGEN_API(get_at_mut);
     (void)BGEN_API(insert);
     (void)BGEN_API(get);
@@ -4821,6 +4840,12 @@ int BGEN_API(get_mut)(BGEN_NODE **root, BGEN_ITEM key, BGEN_ITEM *item_out,
     void *udata)
 {
     return BGEN_SYM(get_mut)(root, key, item_out, udata);
+}
+
+int BGEN_API(get_mut_ref)(BGEN_NODE **root, BGEN_ITEM key, BGEN_ITEM **item,
+    void *udata)
+{
+    return BGEN_SYM(get_mut_ref)(root, key, item, udata);
 }
 
 bool BGEN_API(contains)(BGEN_NODE **root, BGEN_ITEM key, void *udata) {
