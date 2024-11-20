@@ -340,15 +340,16 @@ int main(void) {
         reset_tree();
     }, {
         double bsum = 0;
-        struct kv_iter iter;
+        struct kv_iter *iter;
         kv_iter_init(&tree, &iter, 0);
-        kv_iter_scan(&iter);
+        kv_iter_scan(iter);
         for (int i = 0; i < N; i++) {
-            assert(kv_iter_valid(&iter));
-            kv_iter_item(&iter, &val);
+            assert(kv_iter_valid(iter));
+            kv_iter_item(iter, &val);
             bsum += val;
-            kv_iter_next(&iter);
+            kv_iter_next(iter);
         }
+        kv_iter_release(iter);
         assert(asum == bsum);
     });
 
@@ -356,15 +357,16 @@ int main(void) {
         reset_tree();
     }, {
         double bsum = 0;
-        struct kv_iter iter;
+        struct kv_iter *iter;
         kv_iter_init(&tree, &iter, 0);
-        kv_iter_scan_desc(&iter);
+        kv_iter_scan_desc(iter);
         for (int i = 0; i < N; i++) {
-            assert(kv_iter_valid(&iter));
-            kv_iter_item(&iter, &val);
+            assert(kv_iter_valid(iter));
+            kv_iter_item(iter, &val);
             bsum += val;
-            kv_iter_next(&iter);
+            kv_iter_next(iter);
         }
+        kv_iter_release(iter);
         assert(asum == bsum);
     });
 

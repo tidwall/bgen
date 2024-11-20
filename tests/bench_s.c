@@ -302,44 +302,43 @@ int main(void) {
     
 
     ///////////////////////////////////////////////////////////////////////////
+    struct kv_iter *iter;
+    kv_iter_init(&tree, &iter, 0);
     printf("== using iterators ==\n");
-    struct kv_iter iter;
     run_op("search-item(seq)", N, G, {
-        kv_iter_init(&tree, &iter, 0);
         sort_points(keys, nkeys);
     }, {
         for (int i = 0; i < nkeys; i++) {
             coord[0] = keys[i].x;
             coord[1] = keys[i].y;
             struct iiter0ctx ctx = { .id = keys[i].id };
-            kv_iter_intersects(&iter, coord, coord);
-            while (kv_iter_valid(&iter)) {
+            kv_iter_intersects(iter, coord, coord);
+            while (kv_iter_valid(iter)) {
                 struct point point;
-                kv_iter_item(&iter, &point);
+                kv_iter_item(iter, &point);
                 if (!iter_one(point, &ctx)) {
                     break;
                 }
-                kv_iter_next(&iter);
+                kv_iter_next(iter);
             }
             assert(ctx.found);
         }
     });
     run_op("search-item(rand)", N, G, {
-        kv_iter_init(&tree, &iter, 0);
         shuffle_points(keys, nkeys);
     }, {
         for (int i = 0; i < nkeys; i++) {
             coord[0] = keys[i].x;
             coord[1] = keys[i].y;
             struct iiter0ctx ctx = { .id = keys[i].id };
-            kv_iter_intersects(&iter, coord, coord);
-            while (kv_iter_valid(&iter)) {
+            kv_iter_intersects(iter, coord, coord);
+            while (kv_iter_valid(iter)) {
                 struct point point;
-                kv_iter_item(&iter, &point);
+                kv_iter_item(iter, &point);
                 if (!iter_one(point, &ctx)) {
                     break;
                 }
-                kv_iter_next(&iter);
+                kv_iter_next(iter);
             }
             assert(ctx.found);
         }
@@ -347,7 +346,6 @@ int main(void) {
 
     sum = 0;
     run_op("search-1%%", 1000, G, {
-        kv_iter_init(&tree, &iter, 0);
     }, {
         for (int i = 0; i < 1000; i++) {
             const double p = 0.01;
@@ -358,14 +356,14 @@ int main(void) {
             max[0] = min[0] + 360.0*p;
             max[1] = min[1] + 180.0*p;
             int res = 0;
-            kv_iter_intersects(&iter, min, max);
-            while (kv_iter_valid(&iter)) {
+            kv_iter_intersects(iter, min, max);
+            while (kv_iter_valid(iter)) {
                 struct point point;
-                kv_iter_item(&iter, &point);
+                kv_iter_item(iter, &point);
                 if (!iter_many(point, &res)) {
                     break;
                 }
-                kv_iter_next(&iter);
+                kv_iter_next(iter);
             }
             sum += res;
         }
@@ -374,7 +372,6 @@ int main(void) {
     
     sum = 0;
     run_op("search-5%%", 1000, G, {
-        kv_iter_init(&tree, &iter, 0);
     }, {
         for (int i = 0; i < 1000; i++) {
             const double p = 0.05;
@@ -385,14 +382,14 @@ int main(void) {
             max[0] = min[0] + 360.0*p;
             max[1] = min[1] + 180.0*p;
             int res = 0;
-            kv_iter_intersects(&iter, min, max);
-            while (kv_iter_valid(&iter)) {
+            kv_iter_intersects(iter, min, max);
+            while (kv_iter_valid(iter)) {
                 struct point point;
-                kv_iter_item(&iter, &point);
+                kv_iter_item(iter, &point);
                 if (!iter_many(point, &res)) {
                     break;
                 }
-                kv_iter_next(&iter);
+                kv_iter_next(iter);
             }
             sum += res;
         }
@@ -401,7 +398,6 @@ int main(void) {
 
     sum = 0;
     run_op("search-10%%", 1000, G, {
-        kv_iter_init(&tree, &iter, 0);
     }, {
         for (int i = 0; i < 1000; i++) {
             const double p = 0.10;
@@ -412,18 +408,20 @@ int main(void) {
             max[0] = min[0] + 360.0*p;
             max[1] = min[1] + 180.0*p;
             int res = 0;
-            kv_iter_intersects(&iter, min, max);
-            while (kv_iter_valid(&iter)) {
+            kv_iter_intersects(iter, min, max);
+            while (kv_iter_valid(iter)) {
                 struct point point;
-                kv_iter_item(&iter, &point);
+                kv_iter_item(iter, &point);
                 if (!iter_many(point, &res)) {
                     break;
                 }
-                kv_iter_next(&iter);
+                kv_iter_next(iter);
             }
             sum += res;
         }
     });
+    kv_iter_release(iter);
+
     // printf("%d\n", sum);
 
     return 0;
