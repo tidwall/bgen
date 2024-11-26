@@ -2149,8 +2149,9 @@ static int BGEN_SYM(insert1)(BGEN_NODE *node, int act, size_t index,
     BGEN_ITEM item, BGEN_ITEM *olditem, void *udata, int depth)
 {
     BGEN_ASSERT(!BGEN_SYM(shared)(node));
-    size_t oindex;
-    int found, i;
+    size_t oindex = 0;
+    int found = 0;
+    int i = 0;
 retry:
     switch (act) {
     case BGEN_INSITEM:
@@ -2689,7 +2690,7 @@ static int BGEN_SYM(delete1)(BGEN_NODE *node, int act, BGEN_ITEM key,
         // There's a good chance that this node will need to be rebalanced at
         // the end of this operation. Make sure that both child nodes that will
         // be used in the rebalancing are cow'd _before_ traversing further.
-        if (i == node->len) {
+        if (i > 0 && i == node->len) {
             if (!BGEN_SYM(cow)(&node->children[i-1], udata)) {
                 return BGEN_NOMEM;
             }
