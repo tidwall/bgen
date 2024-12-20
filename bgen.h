@@ -927,6 +927,12 @@ static int BGEN_SYM(search_linear)(BGEN_ITEM *items, int nitems, BGEN_ITEM key,
     int i = 0;
     *found = 0;
 #ifdef BGEN_MAYBELESSEQUAL
+    while (nitems-i >= 4) {
+        if (BGEN_SYM(maybelessequal)(key, items[i], udata)){goto compare;}i++;
+        if (BGEN_SYM(maybelessequal)(key, items[i], udata)){goto compare;}i++;
+        if (BGEN_SYM(maybelessequal)(key, items[i], udata)){goto compare;}i++;
+        if (BGEN_SYM(maybelessequal)(key, items[i], udata)){goto compare;}i++;
+    }
     for (; i < nitems; i++) {
         if (BGEN_SYM(maybelessequal)(key, items[i], udata)) {
             goto compare;

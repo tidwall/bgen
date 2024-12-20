@@ -40,8 +40,9 @@ static void shuffle_points(struct point *array, size_t numels) {
 #define BGEN_FANOUT     4
 #define BGEN_COUNTED
 #define BGEN_SPATIAL
-#define BGEN_ITEMRECT   { point_rect(item, min, max); }
-#define BGEN_COMPARE    { return point_compare(a, b); }
+#define BGEN_ITEMRECT       { point_rect(item, min, max); }
+#define BGEN_MAYBELESSEQUAL { return a.curve <= b.curve; }
+#define BGEN_COMPARE        { return point_compare(a, b); }
 #include "../bgen.h"
 
 
