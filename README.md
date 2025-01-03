@@ -431,7 +431,7 @@ allocate memory. It's generally a good idea to check for the `bt_NOMEM`
 
 ## Item copying and freeing
 
-When the `bt_copy()`, `bt_clone()`, and `bt_free()` functions are 
+When the `bt_copy()`, `bt_clone()`, and `bt_clear()` functions are 
 used, the btree will internally copy and free nodes. 
 With BGEN_ITEMFREE and BGEN_ITEMCOPY, it's possible to also have the btree copy 
 and free items.
