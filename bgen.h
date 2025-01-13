@@ -478,36 +478,63 @@ static void BGEN_SYM(item_free)(BGEN_ITEM item, void *udata) {
 }
 
 #ifdef BGEN_COW
+
+/*
+/// Initialize the reference counter
+void rc_init(rc_t *rc);
+
+/// Add one reference.
+void rc_retain(rc_t *rc);
+
+/// Remove one reference. Return true if the owned object can be destroyed.
+bool rc_release(rc_t *rc);
+
+/// Returns true if there is more that one reference.
+int rc_shared(rc_t *rc);
+*/
+
 #ifdef BGEN_NOATOMICS
 
 typedef int BGEN_SYM(rc_t);
-static int BGEN_SYM(rc_load)(BGEN_SYM(rc_t) *ptr) {
-    return *ptr;
+static void BGEN_SYM(rc_init)(BGEN_SYM(rc_t) *rc) {
+    *rc = 0;
 }
-static int BGEN_SYM(rc_fetch_sub)(BGEN_SYM(rc_t) *ptr, int delta) {
-    int rc = *ptr;
-    *ptr -= delta;
-    return rc;
+static void BGEN_SYM(rc_retain)(BGEN_SYM(rc_t) *rc) {
+    *rc++;
 }
-static int BGEN_SYM(rc_fetch_add)(BGEN_SYM(rc_t) *ptr, int delta) {
-    int rc = *ptr;
-    *ptr += delta;
-    return rc;
+static bool BGEN_SYM(rc_release)(BGEN_SYM(rc_t) *rc) {
+    *rc--;
+    return *rc == 1;
+}
+static bool BGEN_SYM(rc_shared)(BGEN_SYM(rc_t) *rc) {
+    return *rc > 1;
 }
 
 #else
 
 #include <stdatomic.h>
 
+/*
+The relaxed/release/acquire pattern is based on:
+http://boost.org/doc/libs/1_87_0/libs/atomic/doc/html/atomic/usage_examples.html
+*/
+
 typedef atomic_int BGEN_SYM(rc_t);
-static int BGEN_SYM(rc_load)(BGEN_SYM(rc_t) *ptr) {
-    return atomic_load(ptr);
+static void BGEN_SYM(rc_init)(BGEN_SYM(rc_t) *rc) {
+    atomic_init(rc, 0);
 }
-static int BGEN_SYM(rc_fetch_sub)(BGEN_SYM(rc_t) *ptr, int delta) {
-    return atomic_fetch_sub(ptr, delta);
+static void BGEN_SYM(rc_retain)(BGEN_SYM(rc_t) *rc) {
+    atomic_fetch_add_explicit(rc, 1, __ATOMIC_RELAXED);
 }
-static int BGEN_SYM(rc_fetch_add)(BGEN_SYM(rc_t) *ptr, int delta) {
-    return atomic_fetch_add(ptr, delta);
+static bool BGEN_SYM(rc_release)(BGEN_SYM(rc_t) *rc) {
+    if (atomic_fetch_sub_explicit(rc, 1, __ATOMIC_RELEASE) == 1) {
+        atomic_thread_fence(__ATOMIC_ACQUIRE);
+        return true;
+    }
+    return false;
+}
+static bool BGEN_SYM(rc_shared)(BGEN_SYM(rc_t) *rc) {
+    return atomic_load_explicit(rc, __ATOMIC_ACQUIRE) > 1;
 }
 
 #endif
@@ -621,7 +648,8 @@ static BGEN_NODE *BGEN_SYM(alloc_node)(bool isleaf, void *udata) {
     }
     BGEN_NODE *node = (BGEN_NODE*)ptr;
 #ifdef BGEN_COW
-    node->rc = 0;
+    BGEN_SYM(rc_init)(&node->rc);
+    BGEN_SYM(rc_retain)(&node->rc);
 #endif
     node->isleaf = isleaf;
     node->height = 0;
@@ -873,7 +901,7 @@ static size_t BGEN_SYM(node_count)(BGEN_NODE *branch, int node_index) {
 
 static void BGEN_SYM(node_free)(BGEN_NODE *node, void *udata) {
 #ifdef BGEN_COW
-    if (BGEN_SYM(rc_fetch_sub)(&node->rc, 1) > 0) {
+    if (!BGEN_SYM(rc_release)(&node->rc)) {
         return;
     }
 #endif
@@ -1158,7 +1186,7 @@ static BGEN_NODE *BGEN_SYM(node_copy)(BGEN_NODE *node, bool deep, void *udata) {
 #ifdef BGEN_COW
             if (!deep) {
                 node2->children[i] = node->children[i];
-                BGEN_SYM(rc_fetch_add)(&node2->children[i]->rc, 1);
+                BGEN_SYM(rc_retain)(&node2->children[i]->rc);
             } else {
 #else 
             {
@@ -1204,7 +1232,7 @@ static bool BGEN_SYM(shared)(BGEN_NODE *node) {
     (void)node;
     return false;
 #else
-    return BGEN_SYM(rc_load)(&node->rc) > 0;
+    return BGEN_SYM(rc_shared)(&node->rc);
 #endif
 }
 
@@ -3538,7 +3566,7 @@ static int BGEN_SYM(clone)(BGEN_NODE **root, BGEN_NODE **newroot, void *udata) {
         *newroot = *root;
     }
     if (*root) {
-        BGEN_SYM(rc_fetch_add)(&(*root)->rc, 1);
+        BGEN_SYM(rc_retain)(&(*root)->rc);
     }
 #endif
     return BGEN_COPIED;
