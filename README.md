@@ -417,7 +417,7 @@ all btree operations. By default, the built-in `malloc()` and `free()`
 functions from `<stdlib.h>` are used. 
 
 BGEN_MALLOC provides the `size` and `udata` variables.  
-BGEN_FREE provides the `ptr` and `udata` variables.
+BGEN_FREE provides the `ptr`, the original `size`, and `udata` variables.
 
 ```c
 #define BGEN_MALLOC return mymalloc(size);
