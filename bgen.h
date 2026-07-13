@@ -498,11 +498,10 @@ static void BGEN_SYM(rc_init)(BGEN_SYM(rc_t) *rc) {
     *rc = 0;
 }
 static void BGEN_SYM(rc_retain)(BGEN_SYM(rc_t) *rc) {
-    *rc++;
+    (*rc)++;
 }
 static bool BGEN_SYM(rc_release)(BGEN_SYM(rc_t) *rc) {
-    *rc--;
-    return *rc == 0;
+    return (*rc)-- == 1;
 }
 static bool BGEN_SYM(rc_shared)(BGEN_SYM(rc_t) *rc) {
     return *rc > 1;
@@ -512,11 +511,6 @@ static bool BGEN_SYM(rc_shared)(BGEN_SYM(rc_t) *rc) {
 
 #include <stdatomic.h>
 
-/*
-The relaxed/release/acquire pattern is based on:
-http://boost.org/doc/libs/1_87_0/libs/atomic/doc/html/atomic/usage_examples.html
-*/
-
 typedef atomic_int BGEN_SYM(rc_t);
 static void BGEN_SYM(rc_init)(BGEN_SYM(rc_t) *rc) {
     atomic_init(rc, 0);
@@ -525,11 +519,7 @@ static void BGEN_SYM(rc_retain)(BGEN_SYM(rc_t) *rc) {
     atomic_fetch_add_explicit(rc, 1, __ATOMIC_RELAXED);
 }
 static bool BGEN_SYM(rc_release)(BGEN_SYM(rc_t) *rc) {
-    if (atomic_fetch_sub_explicit(rc, 1, __ATOMIC_RELEASE) == 1) {
-        atomic_thread_fence(__ATOMIC_ACQUIRE);
-        return true;
-    }
-    return false;
+    return atomic_fetch_sub_explicit(rc, 1, __ATOMIC_ACQ_REL) == 1;
 }
 static bool BGEN_SYM(rc_shared)(BGEN_SYM(rc_t) *rc) {
     return atomic_load_explicit(rc, __ATOMIC_ACQUIRE) > 1;
