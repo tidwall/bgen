@@ -52,7 +52,7 @@ Insert items into a simple btree that only stores ints.
 #define BGEN_NAME bt            // The namespace for the btree structure.
 #define BGEN_TYPE int           // The data type for all items in the btree
 #define BGEN_LESS return a < b; // A code fragment for comparing items
-#include "../bgen.h"            // Include "bgen.h" to generate the btree
+#include "bgen.h"               // Include "bgen.h" to generate the btree
 
 int main() {
     // Create an empty btree instance.
@@ -112,7 +112,7 @@ struct pair {
 #define BGEN_NAME map
 #define BGEN_TYPE struct pair
 #define BGEN_COMPARE return strcmp(a.key, b.key);
-#include "../bgen.h"
+#include "bgen.h"
 
 void print_map(const char *comment, struct map **map) {
     printf("%s", comment);
@@ -176,12 +176,12 @@ One ordered by the maximum value and the other by the minimum value.
 #define BGEN_NAME max_priority_queue
 #define BGEN_TYPE int
 #define BGEN_LESS return a < b;
-#include "../bgen.h"
+#include "bgen.h"
 
 #define BGEN_NAME min_priority_queue
 #define BGEN_TYPE int
 #define BGEN_LESS return b < a;
-#include "../bgen.h"
+#include "bgen.h"
 
 int main() {
     int data[] = { 1, 8, 5, 6, 3, 4, 0, 9, 7, 2 };
@@ -532,7 +532,7 @@ bool user_iter(struct user user, void *udata) {
 #define BGEN_NAME users
 #define BGEN_TYPE struct user
 #define BGEN_COMPARE { return user_compare(a, b); }
-#include "../bgen.h"
+#include "bgen.h"
 ```
 
 Callback iterators such as `bt_scan()` and `bt_seek()` are available.
@@ -656,7 +656,7 @@ Here's how to create a vector that stores ints.
 #define BGEN_TYPE int
 #define BGEN_COUNTED
 #define BGEN_NOORDER
-#include "../bgen.h"
+#include "bgen.h"
 ```
 
 Now `vector_insert_at()`, `vector_delete_at()`, and `vector_get_at()` can be
@@ -688,7 +688,7 @@ void point_rect(struct point point, double min[], double max[]) {
 #define BGEN_SPATIAL
 #define BGEN_ITEMRECT point_rect(item, min, max);
 #define BGEN_COMPARE return point_compare(a, b);
-#include "../bgen.h"
+#include "bgen.h"
 ```
 
 By default, a spatial btree is two dimensions and uses `double` as the rectangle
