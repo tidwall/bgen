@@ -534,7 +534,7 @@ BGEN_NODE {
     BGEN_SYM(rc_t) rc; // reference counter
 #endif
     short len; // number of items in this node
-    short height; // tree height (one is leaf)
+    char height; // tree height (one is leaf)
     bool isleaf; // node is a leaf
     
     // leaves omit the following fields
