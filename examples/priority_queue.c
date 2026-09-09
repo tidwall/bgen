@@ -6,15 +6,15 @@
 #include <string.h>
 #include <assert.h>
 
-#define BGEN_NAME max_priority_queue
-#define BGEN_TYPE int
-#define BGEN_LESS return a < b;
-#include "../bgen.h"
+#define BTREE_NAME max_priority_queue
+#define BTREE_TYPE int
+#define BTREE_LESS return a < b;
+#include "../btree.h"
 
-#define BGEN_NAME min_priority_queue
-#define BGEN_TYPE int
-#define BGEN_LESS return b < a;
-#include "../bgen.h"
+#define BTREE_NAME min_priority_queue
+#define BTREE_TYPE int
+#define BTREE_LESS return b < a;
+#include "../btree.h"
 
 int main() {
     int data[] = { 1, 8, 5, 6, 3, 4, 0, 9, 7, 2 };

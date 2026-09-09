@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-cfile=../bgen.h
+cfile=../btree.h
 
 set -e
 cd $(dirname "${BASH_SOURCE[0]}")

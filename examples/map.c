@@ -10,10 +10,10 @@ struct pair {
     int value;
 };
 
-#define BGEN_NAME map
-#define BGEN_TYPE struct pair
-#define BGEN_COMPARE return strcmp(a.key, b.key);
-#include "../bgen.h"
+#define BTREE_NAME map
+#define BTREE_TYPE struct pair
+#define BTREE_COMPARE return strcmp(a.key, b.key);
+#include "../btree.h"
 
 void print_map(const char *comment, struct map **map) {
     printf("%s", comment);

@@ -4,10 +4,10 @@
 #include <string.h>
 #include <assert.h>
 
-#define BGEN_NAME stack
-#define BGEN_TYPE int
-#define BGEN_NOORDER
-#include "../bgen.h"
+#define BTREE_NAME stack
+#define BTREE_TYPE int
+#define BTREE_NOORDER
+#include "../btree.h"
 
 int main() {
     struct stack *stack = 0;

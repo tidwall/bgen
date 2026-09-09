@@ -2,16 +2,16 @@
 #define NOCOV // Not a base. ignore coverage 
 #include "testutils.h"
 
-#define BGEN_NAME kv
-#define BGEN_TYPE int
-#define BGEN_COW
-#define BGEN_COUNTED
-#define BGEN_ASSERT
-#define BGEN_FANOUT   16
-#define BGEN_MALLOC   return malloc0(size);
-#define BGEN_FREE     free0(ptr);
-#define BGEN_NOORDER
-#include "../bgen.h"
+#define BTREE_NAME kv
+#define BTREE_TYPE int
+#define BTREE_COW
+#define BTREE_COUNTED
+#define BTREE_ASSERT
+#define BTREE_FANOUT   16
+#define BTREE_MALLOC   return malloc0(size);
+#define BTREE_FREE     free0(ptr);
+#define BTREE_NOORDER
+#include "../btree.h"
 
 static __thread int val = -1;
 static __thread struct kv *tree = 0;
@@ -33,13 +33,8 @@ void pitem(int item, FILE *file, void *udata) {
     fprintf(file, "%d", item);
 }
 
-void prtype(double rtype, FILE *file, void *udata) {
-    (void)udata;
-    fprintf(file, "%.0f", rtype);
-}
-
 void tree_print(struct kv **root) {
-    _kv_internal_print(root, stdout, pitem, prtype, 0);
+    _kv_internal_print(root, stdout, pitem, 0);
 }
 
 void tree_print_dim(struct kv **root) {

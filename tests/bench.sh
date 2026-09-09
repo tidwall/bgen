@@ -15,11 +15,8 @@ if [[ "$G" == "" ]]; then
     export G=5
 fi
 
-echo "tidwall/bgen"
+echo "tidwall/btree.h"
 $CC -O3 $CFLAGS bench_b.c
 ./a.out
 
 echo
-echo "tidwall/bgen (spatial)"
-$CC -O3 $CFLAGS bench_s.c
-./a.out

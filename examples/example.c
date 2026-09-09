@@ -1,9 +1,9 @@
 #include <stdio.h>
 
-#define BGEN_NAME bt            // The namespace for the btree structure.
-#define BGEN_TYPE int           // The data type for all items in the btree
-#define BGEN_LESS return a < b; // A code fragment for comparing items
-#include "../bgen.h"            // Include "bgen.h" to generate the btree
+#define BTREE_NAME bt            // The namespace for the btree structure.
+#define BTREE_TYPE int           // The data type for all items in the btree
+#define BTREE_LESS return a < b; // A code fragment for comparing items
+#include "../btree.h"            // Include "btree.h" to generate the btree
 
 int main() {
     // Create an empty btree instance.

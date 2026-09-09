@@ -5,10 +5,10 @@
 #include <string.h>
 #include <assert.h>
 
-#define BGEN_NAME deque
-#define BGEN_TYPE int
-#define BGEN_NOORDER
-#include "../bgen.h"
+#define BTREE_NAME deque
+#define BTREE_TYPE int
+#define BTREE_NOORDER
+#include "../btree.h"
 
 int main() {
     

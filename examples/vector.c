@@ -5,11 +5,11 @@
 #include <string.h>
 #include <assert.h>
 
-#define BGEN_NAME vector
-#define BGEN_TYPE int
-#define BGEN_COUNTED
-#define BGEN_NOORDER
-#include "../bgen.h"
+#define BTREE_NAME vector
+#define BTREE_TYPE int
+#define BTREE_COUNTED
+#define BTREE_NOORDER
+#include "../btree.h"
 
 int main() {
     int data[] = { 8, 4, 5, 9 };

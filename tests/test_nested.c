@@ -5,14 +5,14 @@
 
 #include "testutils.h"
 
-#define BGEN_BTREE
-#define BGEN_NAME     bt1
-#define BGEN_TYPE     int
-#define BGEN_COW
-#define BGEN_MALLOC   { return malloc0(size); }
-#define BGEN_FREE     { free0(ptr); }
-#define BGEN_LESS     { return a < b; }
-#include "../bgen.h"
+#define BTREE_BTREE
+#define BTREE_NAME     bt1
+#define BTREE_TYPE     int
+#define BTREE_COW
+#define BTREE_MALLOC   { return malloc0(size); }
+#define BTREE_FREE     { free0(ptr); }
+#define BTREE_LESS     { return a < b; }
+#include "../btree.h"
 
 struct col {
     atomic_int rc;
@@ -47,16 +47,16 @@ bool col_copy(struct col *col, struct col **copy, void *udata) {
     return true;
 }
 
-#define BGEN_BTREE
-#define BGEN_NAME     bt0
-#define BGEN_TYPE     struct col*     /* pointer to a collection */
-#define BGEN_COW
-#define BGEN_MALLOC   { return malloc0(size); }
-#define BGEN_FREE     { free0(ptr); }
-#define BGEN_ITEMCOPY { return col_copy(item, copy, udata); }
-#define BGEN_ITEMFREE { col_free(item, udata); }
-#define BGEN_COMPARE  { return strcmp(a->name, b->name); }
-#include "../bgen.h"
+#define BTREE_BTREE
+#define BTREE_NAME     bt0
+#define BTREE_TYPE     struct col*     /* pointer to a collection */
+#define BTREE_COW
+#define BTREE_MALLOC   { return malloc0(size); }
+#define BTREE_FREE     { free0(ptr); }
+#define BTREE_ITEMCOPY { return col_copy(item, copy, udata); }
+#define BTREE_ITEMFREE { col_free(item, udata); }
+#define BTREE_COMPARE  { return strcmp(a->name, b->name); }
+#include "../btree.h"
 
 void test_clone(void) {
     testinit();

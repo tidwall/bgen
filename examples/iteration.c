@@ -21,10 +21,10 @@ bool user_iter(struct user user, void *udata) {
     return true;
 }
 
-#define BGEN_NAME users
-#define BGEN_TYPE struct user
-#define BGEN_COMPARE return user_compare(a, b);
-#include "../bgen.h"
+#define BTREE_NAME users
+#define BTREE_TYPE struct user
+#define BTREE_COMPARE return user_compare(a, b);
+#include "../btree.h"
 
 int main() {
     // Create a new btree.

@@ -6,7 +6,6 @@
 
 #define OUTOFORDER 1
 
-// #define SPATIAL
 #ifndef DIMS
 #define DIMS 2
 #endif
@@ -41,40 +40,6 @@ void item_free(int item, void *udata) {
 
 static __thread bool use_static_3d = false;
 
-void item_rect(int item, double min[], double max[]) {
-#ifndef SPATIAL
-    (void)item;
-    for (int i = 0; i < DIMS; i++) {
-        min[i] = 0;
-        max[i] = 0;
-    }
-#else
-    double point[DIMS];
-    if (item < PREDEFBASE) {
-        if (DIMS > 0) point[0] = item;
-        if (DIMS > 1) point[1] = item;
-    } else if (item < CITIESBASE) {
-        if (DIMS > 0) point[0] = getpointx(predef, item-PREDEFBASE);
-        if (DIMS > 1) point[1] = getpointy(predef, item-PREDEFBASE);
-    } else  {
-        if (DIMS > 0) point[0] = getpointx(cities, item-CITIESBASE);
-        if (DIMS > 1) point[1] = getpointy(cities, item-CITIESBASE);
-    }
-    if (DIMS > 2) {
-        if (use_static_3d) {
-            point[2] = 999;
-        } else {
-            point[2] = item;
-        }
-    }
-
-    for (int i = 0; i < DIMS; i++) {
-        min[i] = point[i];
-        max[i] = point[i];
-    }
-#endif
-}
-
 void *malloc1(size_t size) {
     if (failcounter > 0) {
         failcounter--;
@@ -94,37 +59,32 @@ void free1(void *ptr) {
     free0(ptr);
 }
 
-#define BGEN_BTREE
-#define BGEN_NAME kv
-#define BGEN_TYPE int
-#define BGEN_COW
+#define BTREE_BTREE
+#define BTREE_NAME kv
+#define BTREE_TYPE int
+#define BTREE_COW
 #ifdef COUNTED
-#define BGEN_COUNTED
+#define BTREE_COUNTED
 #endif
-#ifdef SPATIAL
-#define BGEN_SPATIAL
-#define BGEN_ITEMRECT { item_rect(item, min, max); }
-#define BGEN_DIMS     DIMS
-#endif
-#define BGEN_ASSERT
-#define BGEN_FANOUT   16
-#define BGEN_MALLOC   { return malloc1(size); }
-#define BGEN_FREE     { free1(ptr); }
-#define BGEN_ITEMCOPY { return item_copy(item, copy, udata); }
-#define BGEN_ITEMFREE { item_free(item, udata); }
+#define BTREE_ASSERT
+#define BTREE_FANOUT   16
+#define BTREE_MALLOC   { return malloc1(size); }
+#define BTREE_FREE     { free1(ptr); }
+#define BTREE_ITEMCOPY { return item_copy(item, copy, udata); }
+#define BTREE_ITEMFREE { item_free(item, udata); }
 #ifdef NOORDER
-#define BGEN_NOORDER
+#define BTREE_NOORDER
 #else
 #ifdef LINEAR
-#define BGEN_LINEAR
-#define BGEN_LESS     { return a < b; }
+#define BTREE_LINEAR
+#define BTREE_LESS     { return a < b; }
 #elif defined(BSEARCH)
-#define BGEN_BSEARCH
-#define BGEN_COMPARE  { return a < b ? -1 : a > b; }
+#define BTREE_BSEARCH
+#define BTREE_COMPARE  { return a < b ? -1 : a > b; }
 #endif
 #endif
 
-#include "../bgen.h"
+#include "../btree.h"
 
 static __thread int val = -1;
 static __thread struct kv *tree = 0;
@@ -146,13 +106,8 @@ void pitem(int item, FILE *file, void *udata) {
     fprintf(file, "%d", item);
 }
 
-void prtype(double rtype, FILE *file, void *udata) {
-    (void)udata;
-    fprintf(file, "%.0f", rtype);
-}
-
 void tree_print(struct kv **root) {
-    _kv_internal_print(root, stdout, pitem, prtype, 0);
+    _kv_internal_print(root, stdout, pitem, 0);
 }
 
 void tree_print_dim(struct kv **root) {
@@ -232,16 +187,6 @@ void test_sane(void) {
     node.counts[0] = 8;
     node.counts[1] = 8;
 #endif
-#ifdef SPATIAL
-    for (int i = 0; i < DIMS; i++) {
-        node.rects[0].min[i] = 10;
-        node.rects[0].max[i] = 90;
-    }
-    for (int i = 0; i < DIMS; i++) {
-        node.rects[1].min[i] = 100;
-        node.rects[1].max[i] = 170;
-    }
-#endif
     assert(kv_sane(&tree, 0) == true);
 
     // Break stuff
@@ -318,13 +263,6 @@ void test_various(void) {
 #else
     assert(kv_feat_counted() == 0);
 #endif
-#ifdef SPATIAL
-    assert(kv_feat_spatial() == 1);
-    assert(kv_feat_dims() == DIMS);
-#else
-    assert(kv_feat_spatial() == 0);
-    assert(kv_feat_dims() == 0);
-#endif
     assert(kv_feat_fanout() == 16);
     assert(kv_feat_maxheight() == 21);
     assert(kv_feat_maxitems() == 15);
@@ -397,7 +335,7 @@ void test_various(void) {
     unlink("test.dat.out");
     FILE *file = fopen("test.dat.out", "wb+");
     assert(file);
-    _kv_internal_print(&tree, file, pitem, prtype, 0);
+    _kv_internal_print(&tree, file, pitem, 0);
     rewind(file);
     char *buf = malloc(100000);
     assert(buf);
@@ -446,41 +384,6 @@ void test_various(void) {
         assert(kv_get_mut(&tree, keys[i], &val, 0) == kv_FOUND);
         assert(val == keys[i]);
     }
-
-
-    // // scan the tree in order
-    // struct kv_iter iter;
-    // kv_iter_init_mut(&tree, &iter, 0);
-    // sort(keys, nkeys);
-    // int ret = kv_iter_first(&iter);
-    // assert(ret == kv_FOUND);
-    // for (int i = 0; i < nkeys; i++) {
-    //     val = -1;
-    //     kv_iter_item(iter, &val);
-    //     assert(val == keys[i]);
-    //     ret = kv_iter_next(iter);
-    //     if (i == nkeys-1) {
-    //         assert(ret == kv_NOTFOUND);
-    //     } else {
-    //         assert(ret == kv_FOUND);
-    //     }
-    // }
-
-    // // scan in reverse order
-    // kv_iter_init_mut(&tree, &iter, 0);
-    // ret = kv_iter_last(&iter);
-    // assert(ret == kv_FOUND);
-    // for (int i = nkeys-1; i >= 0; i--) {
-    //     val = -1;
-    //     kv_iter_item(iter, &val);
-    //     assert(val == keys[i]);
-    //     ret = kv_iter_prev(&iter);
-    //     if (i == 0) {
-    //         assert(ret == kv_NOTFOUND);
-    //     } else {
-    //         assert(ret == kv_FOUND);
-    //     }
-    // }
 
     // get random value (no return value)
     shuffle(keys, nkeys);
@@ -1584,100 +1487,6 @@ void test_failures(void) {
                 j++;
             }
         }
-
-
-#ifdef SPATIAL
-        double min[DIMS];
-        double max[DIMS];
-        for (int d = 0; d < DIMS; d++) {
-            min[d] = 0;
-        }
-        for (int d = 0; d < DIMS; d++) {
-            max[d] = 99999999;
-        }
-
-        // (iter_intersects) (mut)
-        for (int k = 0; k < K; k++) {
-            kv_clear(&tree2, 0);
-            assert(kv_clone(&tree, &tree2, 0) == kv_COPIED);
-            j = k;
-            while (j < N) {
-                copysum = freesum = 0;
-                struct kv_iter *iter;
-                kv_iter_init_mut(&tree, &iter, 0);
-                kv_iter_intersects(iter, min, max);
-                if (kv_iter_status(iter) == kv_NOMEM) {
-                    kv_iter_release(iter);
-                    continue;
-                }
-                kv_iter_next(iter);
-                if (kv_iter_status(iter) == kv_NOMEM) {
-                    kv_iter_release(iter);
-                    continue;
-                }
-                while (kv_iter_valid(iter)) {
-                    kv_iter_next(iter);
-                }
-                kv_iter_release(iter);
-                j++;
-            }
-        }
-
-        // (intersects_mut)
-        for (int k = 0; k < K; k++) {
-            kv_clear(&tree2, 0);
-            assert(kv_clone(&tree, &tree2, 0) == kv_COPIED);
-            j = 0;
-            while (j < N) {
-                copysum = freesum = 0;
-                if (kv_intersects_mut(&tree, min, max, siter_noop, 0) == kv_NOMEM) {
-                    continue;
-                }
-                j++;
-            }
-        }
-
-        // (nearby_mut)
-        for (int k = 0; k < K; k++) {
-            j = 0;
-            kv_clear(&tree2, 0);
-            assert(kv_clone(&tree, &tree2, 0) == kv_COPIED);
-            while (j < N) {
-                copysum = freesum = 0;
-                if (kv_nearby_mut(&tree, 0, dist_noop, siter_noop, 0) == kv_NOMEM) {
-                    continue;
-                }
-                j++;
-            }
-        }
-
-        // (iter_nearby) (mut)
-        for (int k = 0; k < K; k++) {
-            j = k;
-            kv_clear(&tree2, 0);
-            assert(kv_clone(&tree, &tree2, 0) == kv_COPIED);
-            while (j < N) {
-                copysum = freesum = 0;
-                struct kv_iter *iter;
-                kv_iter_init_mut(&tree, &iter, 0);
-                kv_iter_nearby(iter, 0, dist_noop);
-                if (kv_iter_status(iter) == kv_NOMEM) {
-                    kv_iter_release(iter);
-                    continue;
-                }
-                kv_iter_next(iter);
-                if (kv_iter_status(iter) == kv_NOMEM) {
-                    kv_iter_release(iter);
-                    continue;
-                }
-                while (kv_iter_valid(iter)) {
-                    kv_iter_next(iter);
-                }
-                kv_iter_release(iter);
-                j++;
-            }
-        }
-#endif
         failrandom = 0;
         kv_clear(&tree2, 0);
         kv_clear(&tree, 0);
@@ -1765,208 +1574,6 @@ bool iiter(int item, void *udata) {
     }
     return true;
 } 
-
-bool tintersects(double amin[], double amax[], double bmin[], double bmax[]) {
-    int bits = 0;
-    for (int i = 0; i < DIMS; i++) {
-        bits |= bmin[i] > amax[i];
-        bits |= bmax[i] < amin[i];
-    }
-    return bits == 0;
-}
-
-void slow_intersects(double min[], double max[], void *udata) {
-    (void)min, (void)max, (void)udata;
-#ifdef SPATIAL
-    sort(keys, nkeys);
-    for (int i = 0; i < nkeys; i++) {
-        double kmin[DIMS], kmax[DIMS];
-        item_rect(keys[i], kmin, kmax);
-        if (tintersects(kmin, kmax, min, max)) {
-            if (!iiter(keys[i], udata)) {
-                return;
-            }
-        }
-    }
-#endif
-}
-
-bool test_intersects_opt2(char *label, int a, int b, int stop, bool mut) {
-    bool doit = stop > 0;
-if (doit) {
-    // printf("> %d %d\n", a, b);
-}
-
-    void(*iter_init)(struct kv **root, struct kv_iter **iter, void *udata);
-    int(*intersects)(struct kv **root, double min[], double max[], 
-        bool(*iter)(int item, void *udata), void *udata);
-    if (mut) {
-        iter_init = kv_iter_init_mut;
-        intersects = kv_intersects_mut;
-    } else {
-        iter_init = kv_iter_init;
-        intersects = kv_intersects;
-    }
-
-
-    struct kv *tree2 = tree;
-    assert(kv_clone(&tree, &tree2, 0) == kv_COPIED);
-
-    if (mut) {
-        // delete half the items
-        for (int i = 0; i < nkeys; i+=2) {
-            assert(kv_delete(&tree, keys[i], 0, 0) == kv_DELETED);
-        }
-    }
-
-    double min[DIMS];
-    double max[DIMS];
-    for (int i = 0; i < DIMS; i++) {
-        min[i] = a;
-        max[i] = b;
-    }
-    sort(keys, nkeys);
-    int count = 0;
-    double sum = 0;
-    struct iiter_ctx ctx1 = (struct iiter_ctx){ .label="B",.limit = stop };
-    struct iiter_ctx ctx2 = (struct iiter_ctx){ .label="C",.limit = stop };
-    struct iiter_ctx ctx3 = (struct iiter_ctx){ .label="D",.limit = stop };
-#ifdef SPATIAL
-    for (int i = 0; i < nkeys; i++) {
-        if (keys[i] >= a && keys[i] <= b) {
-            if (stop <= 0) {
-                break;
-            }
-            stop--;
-            count++;
-            sum += keys[i];
-        }
-    }
-#endif
-    slow_intersects(min, max, &ctx1);
-    intersects(&tree2, min, max, iiter, &ctx2);
-
-    struct kv_iter *iter;
-    iter_init(&tree2, &iter, 0);
-    kv_iter_intersects(iter, min, max);
-#ifdef SPATIAL
-    for (; kv_iter_valid(iter); kv_iter_next(iter)) {
-        kv_iter_item(iter, &val);
-        if (!iiter(val, &ctx3)) {
-            break;
-        }
-    }
-#else
-    assert(!kv_iter_valid(iter));
-#endif
-    kv_iter_release(iter);
-    if (!(ctx3.count == ctx2.count && ctx2.count == ctx1.count && 
-        ctx1.count == count))
-    {
-        printf("%d %d %d %d\n", ctx1.count, ctx2.count, ctx3.count, count);
-        fprintf(stderr, "%s: count mismatch\n", label);
-        return false;
-    }
-    if (!(ctx3.sum == ctx2.sum && ctx2.sum == ctx1.sum && ctx1.sum == sum)) {
-        fprintf(stderr, "%s: sum mismatch\n", label);
-        return false;
-    }
-
-    kv_clear(&tree, 0);
-    tree = tree2;
-    return true;
-}
-
-
-void test_intersects_opt(bool mut) {
-    void(*iter_init)(struct kv **root, struct kv_iter **iter, void *udata);
-    // int(*intersects)(struct kv **root, double min[], double max[], void *udata);
-    if (mut) {
-        iter_init = kv_iter_init_mut;
-    } else {
-        iter_init = kv_iter_init;
-    }
-
-
-
-
-
-    // test iter_intersects on an empty tree
-    struct kv_iter *iter;
-    double min[DIMS] = { 0 };
-    double max[DIMS] = { 0 };
-    kv_iter_intersects(0, min, max); // should not fail
-    iter_init(&tree, &iter, 0);
-    kv_iter_intersects(iter, min, max);
-    assert(!kv_iter_valid(iter));
-    kv_iter_release(iter);
-
-    tree_fill();
-
-
-    struct kv *tree2 = tree;
-    assert(kv_clone(&tree, &tree2, 0) == kv_COPIED);
-
-    if (mut) {
-        // delete half the items
-        for (int i = 0; i < nkeys; i+=2) {
-            assert(kv_delete(&tree, keys[i], 0, 0) == kv_DELETED);
-        }
-    }
-
-    // try intersects to find each item
-    sort(keys, nkeys);
-    for (int i = 0; i < nkeys; i++) {
-        bool found = false;
-        item_rect(keys[i], min, max);
-        iter_init(&tree2, &iter, 0);
-        kv_iter_intersects(iter, min, max);
-        while (kv_iter_valid(iter)) {
-            kv_iter_item(iter, &val);
-            if (val == keys[i]) {
-                found = true;
-            }
-            kv_iter_next(iter);
-        }
-        kv_iter_release(iter);
-#ifdef SPATIAL
-        assert(found);
-#else
-        assert(!found);
-#endif
-    }
-
-    kv_clear(&tree, 0);
-    tree = tree2;
-
-    for (int i = 0; i < 100; i++) {
-        assert(test_intersects_opt2("i", 3000+i, 4000+i, i, mut));
-    }
-    assert(test_intersects_opt2("F", 3000, 7000, 9999999, mut));
-    assert(test_intersects_opt2("G", 7000, 3000, 0, mut));
-    assert(test_intersects_opt2("H", 7000, 3000, 1, mut));
-    assert(test_intersects_opt2("I", 7000, 3000, 10, mut));
-    assert(test_intersects_opt2("J", 7000, 3000, 100, mut));
-    assert(test_intersects_opt2("K", 7000, 3000, 1000, mut));
-    assert(test_intersects_opt2("L", 7000, 3000, 9999999, mut));
-    assert(test_intersects_opt2("M", 300, 700, 0, mut));
-    assert(test_intersects_opt2("N", 300, 700, 1, mut));
-    assert(test_intersects_opt2("O", 300, 700, 10, mut));
-    assert(test_intersects_opt2("P", 300, 700, 100, mut));
-    assert(test_intersects_opt2("Q", 300, 700, 1000, mut));
-    assert(test_intersects_opt2("R", 300, 700, 9999999, mut));
-
-    kv_clear(&tree, 0);
-}
-
-void test_intersects(void) {
-    testinit();
-    for (int i = 0; i < 10; i++) {
-        test_intersects_opt(0);
-        test_intersects_opt(1);
-    }
-    checkmem();
-}
 
 struct siter_ctx {
     int limit;
@@ -2626,191 +2233,6 @@ int ncompare(const void *a, const void *b) {
            na->item > nb->item;
 }
 
-int slow_nearby(struct kv **root, void *target,
-    double(*dist)(double min[DIMS], double max[DIMS], 
-    void *target, void *udata), bool(*iter)(int item, void *udata), 
-    void *udata, bool mut)
-{
-#ifndef SPATIAL
-    (void)root, (void)target, (void)dist, (void)iter, (void)udata, (void)mut;
-    return kv_FINISHED;
-#else
-    struct nitem *items = malloc(sizeof(struct nitem) * kv_count(root, udata));
-    assert(items);
-    struct kv_iter *iter2;
-    if (mut) {
-        kv_iter_init_mut(root, &iter2, udata);
-    } else {
-        kv_iter_init(root, &iter2, udata);
-    }
-    kv_iter_scan(iter2);
-    int count = 0;
-    while (kv_iter_valid(iter2)) {
-        kv_iter_item(iter2, &val);
-        double min[DIMS], max[DIMS];
-        item_rect(val, min, max);
-        items[count].dist = dist(min, max, target, udata);
-        items[count].item = val;
-        count++;
-        kv_iter_next(iter2);
-    }
-    assert(kv_iter_status(iter2) == 0);
-    kv_iter_release(iter2);
-    qsort(items, count, sizeof(struct nitem), ncompare);
-    int status = kv_FINISHED;
-    for (int i = 0; i < count; i++) {
-        if (!iter(items[i].item, udata)) {
-            status = kv_STOPPED;
-            break;
-        }
-    }
-    free(items);
-    return status;
-#endif
-}
-
-void test_nearby_opt(bool mut) {
-    tree = 0;
-    if (mut) {
-        assert(kv_nearby_mut(&tree, 0, ndist, niter, 0) == kv_FINISHED);
-    } else {
-        assert(kv_nearby(&tree, 0, ndist, niter, 0) == kv_FINISHED);
-    }
-
-    struct kv_iter *iter;
-    kv_iter_init(&tree, &iter, 0);
-    kv_iter_nearby(0, 0, ndist); // should not fail
-    kv_iter_nearby(iter, 0, ndist);
-    assert(kv_iter_valid(iter) == false);
-    kv_iter_release(iter);
-    
-
-#ifndef SPATIAL
-    return;
-#else
-    int count = ncities;
-    for (int i = 0; i < count; i++) {
-        int item = CITIESBASE+i;
-        assert(kv_insert(&tree, item, 0, 0) == kv_INSERTED);
-    }
-    double point[] = { -112.0, 33.0, count/2 };
-
-    struct kv *tree2, *tree3;
-    assert(kv_clone(&tree, &tree2, 0) == kv_COPIED);
-    assert(kv_clone(&tree, &tree3, 0) == kv_COPIED);
-
-    if (mut) {
-        // delete half the items
-        for (int i = 0; i < count; i+=2) {
-            int item = CITIESBASE+i;
-            assert(kv_delete(&tree, item, 0, 0) == kv_DELETED);
-        }
-    }
-
-    struct nctx ctx1 = { .limit = 10000000 };
-    ctx1.items = malloc(sizeof(int) * count);
-    assert(ctx1.items);
-    if (mut) {
-        assert(kv_nearby_mut(&tree2, point, ndist, niter, &ctx1) == kv_FINISHED);
-    } else {
-        assert(kv_nearby(&tree2, point, ndist, niter, &ctx1) == kv_FINISHED);
-    }
-
-    assert(ctx1.count == count);
-    
-    struct nctx ctx2 = { .limit = 10000000 };
-    ctx2.items = malloc(sizeof(int) * count);
-    assert(ctx2.items);
-    assert(slow_nearby(&tree2, point, ndist, niter, &ctx2, mut) == kv_FINISHED);
-    assert(ctx2.count == count);
-    for (int i = 0; i < count; i++) {
-        assert(ctx1.items[i] == ctx2.items[i]);
-    }
-
-    struct nctx ctx3 = { .limit = 10000000 };
-    ctx3.items = malloc(sizeof(int) * count);
-    assert(ctx3.items);
-    if (mut) {
-        kv_iter_init_mut(&tree3, &iter, &ctx3);
-    } else {
-        kv_iter_init(&tree3, &iter, &ctx3);
-    }
-    kv_iter_nearby(iter, point, ndist);
-    while (kv_iter_valid(iter)) {
-        kv_iter_item(iter, &val);
-        if (!niter(val, &ctx3)) {
-            break;
-        }
-        kv_iter_next(iter);
-    }
-    kv_iter_release(iter);
-
-    assert(ctx3.count == count);
-    for (int i = 0; i < count; i++) {
-        assert(ctx2.items[i] == ctx3.items[i]);
-    }
-
-
-    ctx1.count = 0;
-    ctx1.limit = count/2;
-    if (mut) {
-        assert(kv_nearby_mut(&tree2, point, ndist, niter, &ctx1) == kv_STOPPED);
-    } else {
-        assert(kv_nearby(&tree2, point, ndist, niter, &ctx1) == kv_STOPPED);
-    }
-    assert(ctx1.count == count/2);
-
-    ctx2.count = 0;
-    ctx2.limit = count/2;
-    assert(slow_nearby(&tree2, point, ndist, niter, &ctx2, mut) == kv_STOPPED);
-    assert(ctx2.count == count/2);
-
-
-
-    ctx3.count = 0;
-    ctx3.limit = count/2;
-    
-    if (mut) {
-        kv_iter_init_mut(&tree3, &iter, &ctx3);
-    } else {
-        kv_iter_init(&tree3, &iter, &ctx3);
-    }
-    kv_iter_nearby(iter, point, ndist);
-    while (kv_iter_valid(iter)) {
-        kv_iter_item(iter, &val);
-        if (!niter(val, &ctx3)) {
-            break;
-        }
-        kv_iter_next(iter);
-    }
-    // printf("============\n");
-    kv_iter_scan(iter); // switch to the different scanner
-    // printf("============\n");
-
-
-    kv_iter_release(iter);
-
-    assert(ctx3.count == count/2);
-
-    free(ctx1.items);
-    free(ctx2.items);
-    free(ctx3.items);
-    kv_clear(&tree, 0);
-    kv_clear(&tree2, 0);
-    kv_clear(&tree3, 0);
-#endif
-}
-
-void test_nearby(void) {
-    testinit();
-    use_static_3d = true;
-    test_nearby_opt(0);
-    test_nearby_opt(1);
-    use_static_3d = false;
-    checkmem();
-}
-
-
 void riter(double *min, double *max, int depth, void *udata) {
     (void)depth, (void)udata;
     // printf("( ");
@@ -2822,58 +2244,6 @@ void riter(double *min, double *max, int depth, void *udata) {
         // printf("%f ", max[i]);
     // }
     // printf(")\n");
-}
-
-void check_rect(void) {
-    double min[DIMS] = { 0 };
-    double max[DIMS] = { 0 };
-    double imin[DIMS] = { 0 };
-    double imax[DIMS] = { 0 };
-    struct kv_iter *iter;
-    kv_iter_init(&tree, &iter, 0);
-    kv_iter_scan(iter);
-    int i = 0;
-    while (kv_iter_valid(iter)) {
-        kv_iter_item(iter, &val);
-        if (i == 0) {
-            item_rect(val, min, max);
-        } else {
-            item_rect(val, imin, imax);
-            for (int j = 0; j < DIMS; j++) {
-                if (imin[j] < min[j]) {
-                    min[j] = imin[j];
-                }
-                if (imax[j] > max[j]) {
-                    max[j] = imax[j];
-                }
-            }
-        }
-        kv_iter_next(iter);
-        i++;
-    }
-    kv_iter_release(iter);
-    kv_rect(&tree, imin, imax, 0);
-    for (int i = 0; i < DIMS; i++) {
-        assert(!(min[i] < imin[i] || min[i] > imin[i]));
-        assert(!(max[i] < imax[i] || max[i] > imax[i]));
-    }
-}
-
-void test_rect(void) {
-    testinit();
-    tree_fill();
-    _kv_internal_scan_rects(&tree, riter, 0);
-    check_rect();
-    kv_clear(&tree, 0);
-    for (int i = 0; i < 5; i++) {
-        assert(kv_insert(&tree, i, 0, 0) == kv_INSERTED);
-    }
-    check_rect();
-
-    kv_clear(&tree, 0);
-    check_rect();
-
-    checkmem();
 }
 
 int main(void) {
@@ -2893,15 +2263,12 @@ int main(void) {
     test_various();
     test_compare();
     test_failures();
-    test_intersects();
-    test_nearby();
     test_scan();
     test_scan_desc();
     test_seek();
     test_seek_desc();
     test_seek_at();
     test_seek_at_desc();
-    test_rect();
 
     free(keys);
 

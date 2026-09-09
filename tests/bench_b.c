@@ -17,39 +17,39 @@ int C = 0;        // -1 = worse-case, 0 = average, +1 = best-case
 // #define PATHHINT
 // #define USECOMPARE
 
-#define BGEN_NAME      kv
-#define BGEN_TYPE      int
-#define BGEN_MALLOC    return malloc0(size);
-#define BGEN_FREE      free0(ptr);
+#define BTREE_NAME      kv
+#define BTREE_TYPE      int
+#define BTREE_MALLOC    return malloc0(size);
+#define BTREE_FREE      free0(ptr);
 #ifdef COW
-#define BGEN_COW
+#define BTREE_COW
 #endif
 #ifdef COUNTED
-#define BGEN_COUNTED
+#define BTREE_COUNTED
 #endif
 #ifdef SPATIAL
-#define BGEN_SPATIAL
+#define BTREE_SPATIAL
 #endif
 #ifdef NOATOMIC
-#define BGEN_NOATOMIC
+#define BTREE_NOATOMIC
 #endif
 #ifdef BSEARCH
-#define BGEN_BSEARCH
+#define BTREE_BSEARCH
 #endif
 #ifdef NOPATHHINT
-#define BGEN_NOPATHHINT
+#define BTREE_NOPATHHINT
 #endif
 #ifdef USEPATHHINT
-#define BGEN_PATHHINT
+#define BTREE_PATHHINT
 #endif
-#define BGEN_FANOUT M
-// #define BGEN_ITEMRECT  { min[0] = item; min[1] = item; max[0] = item; max[1] = item; }
+#define BTREE_FANOUT M
+// #define BTREE_ITEMRECT  { min[0] = item; min[1] = item; max[0] = item; max[1] = item; }
 #ifdef USECOMPARE
-#define BGEN_COMPARE      { return a < b ? -1 : a > b; }
+#define BTREE_COMPARE      { return a < b ? -1 : a > b; }
 #else
-#define BGEN_LESS      { return a < b; }
+#define BTREE_LESS      { return a < b; }
 #endif
-#include "../bgen.h"
+#include "../btree.h"
 
 static bool iter_scan(int item, void *udata) {
     double *sum = udata;

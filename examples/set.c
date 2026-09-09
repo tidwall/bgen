@@ -5,10 +5,10 @@
 #include <string.h>
 #include <assert.h>
 
-#define BGEN_NAME set
-#define BGEN_TYPE int
-#define BGEN_LESS return a < b;
-#include "../bgen.h"
+#define BTREE_NAME set
+#define BTREE_TYPE int
+#define BTREE_LESS return a < b;
+#include "../btree.h"
 
 void print_set(struct set **set) {
     struct set_iter *iter;
