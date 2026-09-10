@@ -397,20 +397,6 @@ static void BTREE_SYM(item_free)(BTREE_ITEM item, void *udata) {
 
 #ifdef BTREE_COW
 
-/*
-/// Initialize the reference counter
-void rc_init(rc_t *rc);
-
-/// Add one reference.
-void rc_retain(rc_t *rc);
-
-/// Remove one reference. Return true if the owned object can be destroyed.
-bool rc_release(rc_t *rc);
-
-/// Returns true if there is more that one reference.
-int rc_shared(rc_t *rc);
-*/
-
 #ifdef BTREE_NOATOMICS
 
 typedef int BTREE_SYM(rc_t);
