@@ -117,15 +117,9 @@
 #endif
 
 // A path hint is a search optimization.
-// It's most useful when bsearching, and is turned on by default when
-// BTREE_BSEARCH is provided.
+// It's most useful when bsearching.
 // This implementation uses one thread local path hint per each btree namespace.
 // See https://github.com/tidwall/btree/blob/master/PATH_HINT.md
-#if defined(BTREE_BSEARCH) && BTREE_FANOUT < 256
-#ifndef BTREE_PATHHINT
-#define BTREE_PATHHINT
-#endif
-#endif
 #ifdef BTREE_NOPATHHINT
 #undef BTREE_PATHHINT
 #endif

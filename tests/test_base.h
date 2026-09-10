@@ -79,6 +79,7 @@ void free1(void *ptr) {
 #define BTREE_LINEAR
 #define BTREE_LESS     { return a < b; }
 #elif defined(BSEARCH)
+#define BTREE_PATHHINT
 #define BTREE_BSEARCH
 #define BTREE_COMPARE  { return a < b ? -1 : a > b; }
 #endif

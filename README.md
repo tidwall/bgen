@@ -254,7 +254,7 @@ set using the C preprocessor.
 | BTREE_COUNTED                 | Enable [counted btree](#counted-b-tree) support |
 | BTREE_NOORDER                 | Disable all ordering. (btree becomes a [dynamic array](#vector-b-tree)) |
 | BTREE_NOATOMICS               | Disable atomics for [copy-on-write](#copy-on-write) (single threaded only) |
-| BTREE_NOHINTS                 | Disable path hints ([path hints](#path-hints) are only available for [bsearch](#binary-search-or-linear-search)) |
+| BTREE_PATHHINT                 | Enable path hints ([path hints](#path-hints)) |
 | BTREE_ITEMCOPY `<code>`       | Define operation for [internally copying items](#item-copying-and-freeing) |
 | BTREE_ITEMFREE `<code>`       | Define operation for [internally freeing items](#item-copying-and-freeing) |
 | BTREE_HEADER                  | Generate header declaration only. See [Header and source](#header-and-source) |
@@ -333,9 +333,6 @@ cache-efficient, providing excellent performance for [small nodes](#fanout).
 
 Optionally the BTREE_BSEARCH may be used to enable binary searches instead of
 linear. This may be better for large nodes or where comparing items may be slow.
-
-Note that btree.h automatically enables [path hints](#path-hints) when the 
-BTREE_BSEARCH option is provided.
 
 ## Less-equal hint
 
@@ -477,7 +474,8 @@ means that there was an error such as out of memory.
 
 ## Path hints
 
-btree.h uses path hints when BTREE_BSEARCH is provided.
+btree.h allows for path hints using the BTREE_PATHHINT option.
+
 It's an automatic search optimization which causes the btree to track the
 search path of every operation, using that path as a hint for the next
 operation.
@@ -489,10 +487,7 @@ For more information see the
 [original document](https://github.com/tidwall/btree/blob/master/PATH_HINT.md).
 
 This implementation uses a thread-local variable to manage the hint.
-Other than providing BTREE_BSEARCH, there are no additional requirements to make
-this feature work.
-
-To disable path hints, provide the BTREE_NOHINTS option.
+Other than providing BTREE_PATHHINT, there are no additional requirements to make this feature work.
 
 ## Iterators
 
